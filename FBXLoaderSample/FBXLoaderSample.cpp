@@ -34,8 +34,17 @@ ID3D11DepthStencilState*			g_pDepthStencilState = NULL;
 XMMATRIX                            g_World;
 XMMATRIX                            g_View;
 XMMATRIX                            g_Projection;
-XMFLOAT4                            g_vMeshColor( 0.7f, 0.7f, 0.7f, 1.0f );
 
+//--------------------------------------------------------------------------------------
+// MACROS
+//--------------------------------------------------------------------------------------
+#define FAIL_CHECK(expression) if( FAILED(expression) )	{ return expression; }
+
+#define FAIL_CHECK_WITH_MSG(expression, msg) if( FAILED(expression) )	\
+{																		\
+	MessageBox(NULL, msg, "Error", MB_OK);								\
+	return expression;													\
+}
 
 //--------------------------------------------------------------------------------------
 // Forward declarations
@@ -52,15 +61,12 @@ const DWORD	NUMBER_OF_MODELS = 1;
 
 HRESULT InitApp();
 void CleanupApp();
-HRESULT SetupTransformSRV();
-//void SetMatrix();
 ursine::CFBXRenderDX11*	g_pFbxDX11[NUMBER_OF_MODELS];
 
 // FBX file
 char g_files[NUMBER_OF_MODELS][256] =
-{ 
-	//"Assets\\Animations\\Player\\Player_Idle.fbx"
-	"Assets\\Models\\Boss\\Boss.fbx"
+{
+	"Assets/Animations/Player/Player_Idle.fbx"
 };
 
 std::vector<XMMATRIX> skin_mat;
@@ -83,18 +89,17 @@ ID3D11PixelShader*              g_pps = nullptr;
 
 // Instancing
 bool	g_bInstancing = false;
+const uint32_t g_InstanceMAX = 32;
+ID3D11VertexShader*				g_pvsInstancing = nullptr;
+
+// Shader Resource View - was implemented for instancing
 struct SRVPerInstanceData
 {
 	XMMATRIX mWorld;
 };
-
-const uint32_t g_InstanceMAX = 32;
-ID3D11VertexShader*				g_pvsInstancing = nullptr;
 ID3D11Buffer*					g_pTransformStructuredBuffer = nullptr;
 ID3D11ShaderResourceView*		g_pTransformSRV = nullptr;
-
-//SpriteBatch*		g_pSpriteBatch = nullptr;
-//SpriteFont*		g_pFont = nullptr;
+HRESULT SetupTransformSRV();
 
 //--------------------------------------------------------------------------------------
 // Entry point to the program. Initializes everything and goes into a message processing 
@@ -130,6 +135,7 @@ int WINAPI wWinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdL
 			std::clock_t timedelta = std::clock() - start;
 			float t_delta_per_msec = (timedelta * updateSpeed) / (float)(CLOCKS_PER_SEC);
 			Update(t_delta_per_msec);
+
 			// need to be reset on last frame's time
 			if (t_delta_per_msec >= 1.f)
 				start = std::clock();
@@ -192,7 +198,6 @@ HRESULT InitWindow( HINSTANCE hInstance, int nCmdShow )
     return S_OK;
 }
 
-
 //--------------------------------------------------------------------------------------
 // Helper for compiling shaders with D3DCompile
 //
@@ -224,7 +229,6 @@ HRESULT CompileShaderFromFile( LPCTSTR szFileName, LPCSTR szEntryPoint, LPCSTR s
 
     return S_OK;
 }
-
 
 //--------------------------------------------------------------------------------------
 // Create Direct3D device and swap chain
@@ -340,8 +344,7 @@ HRESULT InitDevice()
     descDSV.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
     descDSV.Texture2D.MipSlice = 0;
     hr = g_pd3dDevice->CreateDepthStencilView( g_pDepthStencil, &descDSV, &g_pDepthStencilView );
-    if( FAILED( hr ) )
-        return hr;
+    if( FAILED( hr ) )  return hr;
 
 	// setting rendertargetview & depth-stencil buffer 
     g_pImmediateContext->OMSetRenderTargets( 1, &g_pRenderTargetView, g_pDepthStencilView );
@@ -353,7 +356,7 @@ HRESULT InitDevice()
     descDSS.DepthWriteMask	= D3D11_DEPTH_WRITE_MASK_ALL;
     descDSS.DepthFunc	= D3D11_COMPARISON_LESS;
     descDSS.StencilEnable	= FALSE;
-	hr = g_pd3dDevice->CreateDepthStencilState(&descDSS,&g_pDepthStencilState );
+	hr = g_pd3dDevice->CreateDepthStencilState(&descDSS, &g_pDepthStencilState );
 	
     // Setup the viewport - topleft(0,0), bottomright(1,1)
     D3D11_VIEWPORT vp;
@@ -368,12 +371,16 @@ HRESULT InitDevice()
 
      // Initialize the world matrices
     g_World = XMMatrixIdentity();
-		
+	
+	// Init application
 	hr = InitApp();
-    if( FAILED( hr ) ) return hr;
-	hr = SetupTransformSRV(); 
-	if( FAILED( hr ) )
-        return hr;
+    if( FAILED( hr ) ) 
+		return hr;
+
+	//// create shader resource view
+	//hr = SetupTransformSRV(); 
+	//if( FAILED( hr ) )
+    //    return hr;
 
     return S_OK;
 }
@@ -387,21 +394,14 @@ HRESULT InitApp()
 		// this is the place where fbx file loaded
 		g_pFbxDX11[i] = new ursine::CFBXRenderDX11;
 		hr = g_pFbxDX11[i]->LoadFBX(g_files[i], g_pd3dDevice);
-		if (FAILED(hr))
-		{
-			MessageBox(NULL, "Load FBX Error", "Error", MB_OK);
-			return hr;
-		}
+		FAIL_CHECK_WITH_MSG( hr, "Load FBX Error" );
 	}
 
 	// Compile the vertex shader
     ID3DBlob* pVSBlobStatic = NULL, *pVSBlobSkinned = NULL, *pVSBlobInstancing = NULL;
 	hr = CompileShaderFromFile("simpleRenderVSStatic.hlsl", "vs_main", "vs_5_0", &pVSBlobStatic);
-    if( FAILED( hr ) )
-    {
-        MessageBox( NULL, "The FX file cannot be compiled.  Please run this executable from the directory that contains the FX file.", "Error", MB_OK );
-        return hr;
-    }
+	FAIL_CHECK_WITH_MSG(hr, "The FX file cannot be compiled.  Please run this executable from the directory that contains the FX file.");
+
     // Create the vertex shader - static
     hr = g_pd3dDevice->CreateVertexShader(pVSBlobStatic->GetBufferPointer(), pVSBlobStatic->GetBufferSize(), NULL, &g_pvsStatic );
     if( FAILED( hr ) )
@@ -411,12 +411,9 @@ HRESULT InitApp()
     }
 
 	// Compile the vertex shader
-	hr = CompileShaderFromFile("simpleRenderVSSkinned.hlsl", "vs_main", "vs_4_0", &pVSBlobSkinned);
-	if (FAILED(hr))
-	{
-		MessageBox(NULL, "The FX file cannot be compiled.  Please run this executable from the directory that contains the FX file.", "Error", MB_OK);
-		return hr;
-	}
+	hr = CompileShaderFromFile("simpleRenderVSSkinned.hlsl", "vs_main", "vs_5_0", &pVSBlobSkinned);
+	FAIL_CHECK_WITH_MSG(hr, "The FX file cannot be compiled.  Please run this executable from the directory that contains the FX file.");
+
 	// Create the vertex shader - Skinned
 	hr = g_pd3dDevice->CreateVertexShader(pVSBlobSkinned->GetBufferPointer(), pVSBlobSkinned->GetBufferSize(), NULL, &g_pvsSkinned);
 	if (FAILED(hr))
@@ -426,13 +423,9 @@ HRESULT InitApp()
 	}
 
 	// Compile the vertex shader
-	hr = CompileShaderFromFile("simpleRenderInstancingVS.hlsl", "vs_main", "vs_4_0", &pVSBlobInstancing);
-    if( FAILED( hr ) )
-    {
-        MessageBox( NULL, "The FX file cannot be compiled.  Please run this executable from the directory that contains the FX file.", "Error", MB_OK );
-        return hr;
-    }
-	
+	hr = CompileShaderFromFile("simpleRenderInstancingVS.hlsl", "vs_main", "vs_5_0", &pVSBlobInstancing);
+	FAIL_CHECK_WITH_MSG(hr, "The FX file cannot be compiled.  Please run this executable from the directory that contains the FX file.");
+
     // Create the vertex shader - Instance
 	hr = g_pd3dDevice->CreateVertexShader(pVSBlobInstancing->GetBufferPointer(), pVSBlobInstancing->GetBufferSize(), NULL, &g_pvsInstancing);
     if( FAILED( hr ) )
@@ -446,7 +439,7 @@ HRESULT InitApp()
 	// after load fbx successfully, then set the layout.
 	// need to figure out which layout they are
 	LAYOUT input_layout;
-	for(DWORD i=0;i<NUMBER_OF_MODELS; ++i)
+	for(UINT i=0;i<NUMBER_OF_MODELS; ++i)
 	{
 		eLayout layout_type = g_pFbxDX11[i]->GetLayoutType(i);
 		switch(layout_type)
@@ -474,20 +467,15 @@ HRESULT InitApp()
 	if(pVSBlobStatic) pVSBlobStatic->Release();
 	if(pVSBlobSkinned) pVSBlobSkinned->Release();
 	if(pVSBlobInstancing) pVSBlobInstancing->Release();
-    if( FAILED( hr ) )
-        return hr;
+	FAIL_CHECK(hr);
 
     // Compile the pixel shader
     ID3DBlob* pPSBlob = NULL;
     hr = CompileShaderFromFile("simpleRenderPS.hlsl", "PS", "ps_5_0", &pPSBlob );
-    if( FAILED( hr ) )
-    {
-        MessageBox( NULL, "The FX file cannot be compiled.  Please run this executable from the directory that contains the FX file.", "Error", MB_OK );
-        return hr;
-    }
+	FAIL_CHECK_WITH_MSG(hr, "The FX file cannot be compiled.  Please run this executable from the directory that contains the FX file.");
 
     // Create the pixel shader
-    hr = g_pd3dDevice->CreatePixelShader( pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), NULL, &g_pps);
+    hr = g_pd3dDevice->CreatePixelShader( pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), NULL, &g_pps );
     pPSBlob->Release();
     if( FAILED( hr ) )
         return hr;
@@ -500,8 +488,7 @@ HRESULT InitApp()
     bd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
     bd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
     hr = g_pd3dDevice->CreateBuffer( &bd, NULL, &g_pcBuffer );
-    if( FAILED( hr ) )
-        return hr;
+	FAIL_CHECK(hr);
 
 	//
 	D3D11_RASTERIZER_DESC rsDesc;
@@ -527,11 +514,6 @@ HRESULT InitApp()
 	blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL ;
 	g_pd3dDevice->CreateBlendState(&blendDesc, &g_pBlendState);
 
-	//// SpriteBatch
-	//g_pSpriteBatch = new SpriteBatch(g_pImmediateContext);
-	//// SpriteFont
-	//g_pFont = new SpriteFont(g_pd3dDevice, L"Assets\\Arial.spritefont");
-
 	return hr;
 }
 
@@ -554,8 +536,7 @@ HRESULT SetupTransformSRV()
 
 	// create transformStructuredBuffer
 	hr = g_pd3dDevice->CreateBuffer( &bd, NULL, &g_pTransformStructuredBuffer );
-    if( FAILED( hr ) )
-        return hr;
+	FAIL_CHECK(hr);
 
 	// Create ShaderResourceView
 	D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc;
@@ -565,31 +546,20 @@ HRESULT SetupTransformSRV()
 	srvDesc.Format = DXGI_FORMAT_UNKNOWN;
 	srvDesc.BufferEx.NumElements = count;
 	hr = g_pd3dDevice->CreateShaderResourceView( g_pTransformStructuredBuffer, &srvDesc, &g_pTransformSRV );
-    if( FAILED( hr ) )
-        return hr;
+	FAIL_CHECK(hr);
 
 	return hr;
 }
 
-//
+// Clear application
 void CleanupApp()
 {
-	//if(g_pSpriteBatch)
-	//{
-	//	delete g_pSpriteBatch ;
-	//	g_pSpriteBatch = nullptr;
-	//}
-	//if(g_pFont)
-	//{
-	//	delete g_pFont;
-	//	g_pFont = nullptr;
-	//}
-
 	if(g_pTransformSRV)
 	{
 		g_pTransformSRV->Release();
 		g_pTransformSRV = nullptr;
 	}
+
 	if(g_pTransformStructuredBuffer)
 	{
 		g_pTransformStructuredBuffer->Release();
@@ -647,14 +617,12 @@ void CleanupApp()
 	}
 }
 
-
 //--------------------------------------------------------------------------------------
 // Clean up the objects we've created
 //--------------------------------------------------------------------------------------
 void CleanupDevice()
 {
     if( g_pImmediateContext ) g_pImmediateContext->ClearState();
-
 	if( g_pDepthStencilState ) g_pDepthStencilState->Release();
 	if( g_pDepthStencil ) g_pDepthStencil->Release();
     if( g_pDepthStencilView ) g_pDepthStencilView->Release();
@@ -663,7 +631,6 @@ void CleanupDevice()
     if( g_pImmediateContext ) g_pImmediateContext->Release();
     if( g_pd3dDevice ) g_pd3dDevice->Release();
 }
-
 
 //--------------------------------------------------------------------------------------
 // Called every time the application receives a message
@@ -675,10 +642,8 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 
     switch( message )
     {
-		case WM_KEYUP:
-			break;
-        case WM_PAINT:
-            hdc = BeginPaint( hWnd, &ps );
+        case WM_PAINT: 
+			hdc = BeginPaint( hWnd, &ps );
             EndPaint( hWnd, &ps );
             break;
 
@@ -692,28 +657,6 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 
     return 0;
 }
-
-//// set instance's world matrix
-//void SetMatrix()
-//{
-//	HRESULT hr = S_OK;
-//	unsigned int count = g_InstanceMAX;
-//	XMMATRIX mat;
-//	
-//	D3D11_MAPPED_SUBRESOURCE MappedResource;
-//	hr = g_pImmediateContext->Map( g_pTransformStructuredBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &MappedResource );
-//	SRVPerInstanceData*	pSrvInstanceData = (SRVPerInstanceData*)MappedResource.pData;
-//	
-//	if (skin_mat.empty())
-//		return;
-//
-//	for (unsigned int i = 0; i<count; ++i)
-//	{
-//		pSrvInstanceData[i].mWorld = skin_mat[i];
-//	}
-//	
-//	g_pImmediateContext->Unmap(g_pTransformStructuredBuffer, 0);
-//}
 
 //--------------------------------------------------------------------------------------
 // Render a frame
@@ -729,8 +672,8 @@ void Render()
 	g_World = XMMatrixIdentity();
 
 	// Initialize the view matrix
-	XMVECTOR Eye = XMVectorSet(0.0f, 15.f, -50.f, 0.0f); //0.f, 0.f, -50.f, 0.f);
-	XMVECTOR At = XMVectorSet(0.0f, 15.f, 0.0f, 0.0f); //0.f, 0.f, 0.f, 0.f);
+	XMVECTOR Eye = XMVectorSet(0.0f, 15.f, -50.f, 0.0f);
+	XMVECTOR At = XMVectorSet(0.0f, 15.f, 0.0f, 0.0f);
 	XMVECTOR Up = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
 	g_View = XMMatrixLookAtLH(Eye, At, Up);
 
@@ -752,15 +695,14 @@ void Render()
 		t = (dwTimeCur - dwTimeStart) / 1000.0f;
 	}
 
-	// Rotate cube around the origin
-	XMMATRIX tmp = XMMatrixRotationY(t);
-
 	// Clear the back buffer
 	float ClearColor[4] = { 0.5f, 0.5f, 0.5f, 1.0f }; // red, green, blue, alpha
 	g_pImmediateContext->ClearRenderTargetView(g_pRenderTargetView, ClearColor);
+	
 	// Clear the depth buffer to 1.0 (max depth)
 	g_pImmediateContext->ClearDepthStencilView(g_pDepthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
 
+	// Set Blend Factors
 	float blendFactors[4] = { D3D11_BLEND_ZERO, D3D11_BLEND_ZERO, D3D11_BLEND_ZERO, D3D11_BLEND_ZERO };
 	g_pImmediateContext->RSSetState(g_pRS);
 	g_pImmediateContext->OMSetBlendState(g_pBlendState, blendFactors, 0xffffffff);
@@ -769,13 +711,6 @@ void Render()
 	// for all model
 	for (DWORD i = 0; i<NUMBER_OF_MODELS; ++i)
 	{
-		// FBX Model's attributes for rendering
-		XMMATRIX l_SQT = XMMATRIX(
-			1.0f, 0.0f, 0.0f, 0.0f,
-			0.0f, 1.0f, 0.0f, 0.0f,
-			0.0f, 0.0f, 1.0f, 0.0f,
-			0.0f, 0.0f, 0.0f, 1.0f);
-
 		// for all nodes
 		size_t meshnodeCnt = g_pFbxDX11[i]->GetMeshNodeCount();
 		for (size_t j = 0; j < meshnodeCnt; ++j)
@@ -783,63 +718,60 @@ void Render()
 			//////////////////////////////////////
 			// sort by layout later
 			//////////////////////////////////////
-			MESH_NODE* currNode = &g_pFbxDX11[i]->GetMeshNode(j);
 			eLayout layout_type = g_pFbxDX11[i]->GetLayoutType(j);
 			ID3D11VertexShader* pVS = nullptr;
 			switch (layout_type)
 			{
-			case eLayout::NONE:
-				continue;
-			case eLayout::STATIC:
-				pVS = g_pvsStatic;
-				break;
-			case eLayout::SKINNED:
-				pVS = g_pvsSkinned;
-				break;
+			case eLayout::NONE:		continue;
+			case eLayout::STATIC:	pVS = g_pvsStatic;	break;
+			case eLayout::SKINNED:	pVS = g_pvsSkinned;	break;
 			}
+
 			g_pImmediateContext->VSSetShader(pVS, NULL, 0);
 			g_pImmediateContext->VSSetConstantBuffers(0, 1, &g_pcBuffer);
 			g_pImmediateContext->PSSetShader(g_pps, NULL, 0);
 
 			D3D11_MAPPED_SUBRESOURCE MappedResource;
 			g_pImmediateContext->Map(g_pcBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &MappedResource);
+
 			CBFBXMATRIX* cbFBX = (CBFBXMATRIX*)MappedResource.pData;
-			g_pFbxDX11[i]->UpdateMatPal(&l_SQT, &cbFBX->matPal[0]);
 
 			// WVP
-			//l_SQT = tmp * l_SQT;
-			XMMATRIX world = XMMatrixIdentity();
-			g_World = tmp * world;
 			cbFBX->mWorld = XMMatrixTranspose(g_World);
 			cbFBX->mView = XMMatrixTranspose(g_View);
 			cbFBX->mProj = XMMatrixTranspose(g_Projection);
+
 			// xm matrix - row major
 			// hlsl - column major
 			// that's why we transpose this
 			cbFBX->mWVP = XMMatrixTranspose(g_World * g_View * g_Projection);
 			if (eLayout::SKINNED == layout_type)
-				g_pFbxDX11[i]->UpdateMatPal(&l_SQT, &cbFBX->matPal[0]);
-			g_pImmediateContext->Unmap(g_pcBuffer, 0);
+				g_pFbxDX11[i]->UpdateMatPal(&cbFBX->matPal[0]);
 
 			// should be changed to get specific materials according to specific material id 
 			// to make this possible, we need to build up the structure of subsets
 			Material_Data material = g_pFbxDX11[i]->GetNodeFbxMaterial(j);
 
-			if (g_pTransformSRV)
-				g_pImmediateContext->VSSetShaderResources(0, 1, &g_pTransformSRV);
-			if (material.pSRV)
-				g_pImmediateContext->PSSetShaderResources(0, 1, &material.pSRV);
-			// set constant buffer
+			if (g_pTransformSRV)	g_pImmediateContext->VSSetShaderResources(0, 1, &g_pTransformSRV);
+			if (material.pSRV)		g_pImmediateContext->PSSetShaderResources(0, 1, &material.pSRV);
+
+			// set constant buffer for material
 			if (material.pMaterialCb)
 			{
 				g_pImmediateContext->UpdateSubresource(material.pMaterialCb, 0, NULL, &material.materialConst, 0, 0);
 				g_pImmediateContext->PSSetConstantBuffers(0, 1, &material.pMaterialCb);
 			}
-			// set sampler
-			if (material.pSampler)
-				g_pImmediateContext->PSSetSamplers(0, 1, &material.pSampler);
 
+			// set sampler
+			if (material.pSampler)	g_pImmediateContext->PSSetSamplers(0, 1, &material.pSampler);
+
+			// render node
 			g_pFbxDX11[i]->RenderNode(g_pImmediateContext, j);
+			
+			// unmap constant buffer
+			g_pImmediateContext->Unmap(g_pcBuffer, 0);
+
+			// reset shader
 			g_pImmediateContext->VSSetShader(NULL, NULL, 0);
 			g_pImmediateContext->PSSetShader(NULL, NULL, 0);
 		}
@@ -848,4 +780,3 @@ void Render()
 	// Present our back buffer to our front buffer
 	g_pSwapChain->Present(0, 0);
 }
-

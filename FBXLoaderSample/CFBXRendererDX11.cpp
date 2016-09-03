@@ -59,8 +59,7 @@ namespace ursine
 		return hr;
 	}
 
-	// export
-	HRESULT CFBXRenderDX11::CreateNodes(ID3D11Device*	pd3dDevice)
+	HRESULT CFBXRenderDX11::CreateNodes(ID3D11Device* pd3dDevice)
 	{
 		if (!pd3dDevice) 
 			return E_FAIL;
@@ -76,33 +75,42 @@ namespace ursine
 		for (size_t i = 0; i<meshCnt; ++i)
 		{
 			const MeshInfo& currMI = modelInfo.mMeshInfoVec[i];
+			
 			FBX_DATA::MESH_NODE meshNode;
 			meshNode.m_meshName = currMI.name;
-			if (modelInfo.mboneCount == 0)
+
+			if (0 == modelInfo.mboneCount)
 				meshNode.m_Layout = FBX_DATA::eLayout::STATIC;
 			else
 				meshNode.m_Layout = FBX_DATA::eLayout::SKINNED;
+
 			meshNode.m_meshTM = currMI.meshTM;
-			VertexConstructionByModel(pd3dDevice, meshNode, modelInfo, i);
+
+			// constructing vertex buffer
+			VertexConstructionByModel(pd3dDevice, meshNode, modelInfo.mMeshInfoVec[i]);
 			meshNode.indexCount = static_cast<DWORD>(currMI.meshVtxIdxCount);
 			meshNode.SetIndexBit(meshNode.indexCount);
 
 			unsigned int* indices = new unsigned int[meshNode.indexCount];
 			for (unsigned j = 0; j < meshNode.indexCount; ++j)
 				indices[j] = currMI.meshVtxIndices[j];
+
 			if (meshNode.indexCount > 0)
 				hr = CreateIndexBuffer(pd3dDevice,
 					&meshNode.m_pIB,
 					indices,
 					static_cast<uint32_t>(meshNode.indexCount));
+
+			// constructing materials 
 			MaterialConstructionByModel(pd3dDevice, meshNode, modelInfo, i);
 			m_meshNodeArray.push_back(meshNode);
+
 			delete indices;
 		}
 		return hr;
 	}
 
-	HRESULT CFBXRenderDX11::CreateVertexBuffer(ID3D11Device*	pd3dDevice, ID3D11Buffer** pBuffer, void* pVertices, uint32_t stride, uint32_t vertexCount)
+	HRESULT CFBXRenderDX11::CreateVertexBuffer(ID3D11Device* pd3dDevice, ID3D11Buffer** pBuffer, void* pVertices, uint32_t stride, uint32_t vertexCount)
 	{
 		if (!pd3dDevice || stride == 0 || vertexCount == 0)
 			return E_FAIL;
@@ -152,33 +160,35 @@ namespace ursine
 		return hr;
 	}
 
-	HRESULT CFBXRenderDX11::VertexConstructionByModel(ID3D11Device* pd3dDevice,
-		FBX_DATA::MESH_NODE& meshNode, const ModelInfo& modelInfo, unsigned int index)
+	HRESULT CFBXRenderDX11::VertexConstructionByModel(ID3D11Device* pd3dDevice, FBX_DATA::MESH_NODE& meshNode, const MeshInfo& meshInfo)
 	{
-		const MeshInfo& currMI = modelInfo.mMeshInfoVec[index];
+		const MeshInfo& currMI = meshInfo;
 		meshNode.vertexCount = static_cast<DWORD>(currMI.meshVtxInfoCount);
 		meshNode.indexCount = static_cast<DWORD>(currMI.meshVtxIdxCount);
+
 		if (!pd3dDevice || 0 == meshNode.vertexCount || 0 == meshNode.indexCount)
 			return E_FAIL;
 
 		HRESULT hr = S_OK;
+		UINT i = 0;
 		switch (meshNode.m_Layout)
 		{
 		case FBX_DATA::STATIC:
 		{
 			FBX_DATA::VERTEX_DATA_STATIC* pVS = new FBX_DATA::VERTEX_DATA_STATIC[currMI.meshVtxInfoCount];
-			for (size_t i = 0; i < currMI.meshVtxInfoCount; ++i)
+			for (auto &iter : currMI.meshVtxInfos)
 			{
-				const MeshVertex& currMVTXI = currMI.meshVtxInfos[i];
+				XMFLOAT3 currVtx	= XMFLOAT3(iter.pos.x, iter.pos.y, iter.pos.z);
+				XMFLOAT3 currNorm	= XMFLOAT3(iter.normal.x, iter.normal.y, iter.normal.z);
+				XMFLOAT2 currUV		= XMFLOAT2(iter.uv.x, iter.uv.y);
 
-				XMFLOAT3 currVtx = XMFLOAT3(currMVTXI.pos.x, currMVTXI.pos.y, currMVTXI.pos.z);
-				XMFLOAT3 currNorm = XMFLOAT3(currMVTXI.normal.x, currMVTXI.normal.y, currMVTXI.normal.z);
-				XMFLOAT2 currUV = XMFLOAT2(currMVTXI.uv.x, currMVTXI.uv.y);
+				pVS[i].vPos			= currVtx;
+				pVS[i].vNor			= currNorm;
+				pVS[i].vTexcoord	= currUV;
 
-				pVS[i].vPos = currVtx;
-				pVS[i].vNor = currNorm;
-				pVS[i].vTexcoord = currUV;
+				++i;
 			}
+
 			hr = CreateVertexBuffer(pd3dDevice, &meshNode.m_pVB, pVS, sizeof(FBX_DATA::VERTEX_DATA_STATIC), meshNode.vertexCount);
 			if (pVS)
 				delete[] pVS;
@@ -188,28 +198,29 @@ namespace ursine
 		case FBX_DATA::SKINNED:
 		{
 			FBX_DATA::VERTEX_DATA_SKIN* pVK = new FBX_DATA::VERTEX_DATA_SKIN[currMI.meshVtxInfoCount];
-			for (size_t i = 0; i < currMI.meshVtxInfoCount; ++i)
+			for (auto &iter : currMI.meshVtxInfos)
 			{
-				const MeshVertex& currMVTXI = currMI.meshVtxInfos[i];
+				XMFLOAT3 currVtx	= XMFLOAT3(iter.pos.x, iter.pos.y, iter.pos.z);
+				XMFLOAT3 currNorm	= XMFLOAT3(iter.normal.x, iter.normal.y, iter.normal.z);
+				XMFLOAT2 currUV		= XMFLOAT2(iter.uv.x, iter.uv.y);
 
-				XMFLOAT3 currVtx = XMFLOAT3(currMVTXI.pos.x, currMVTXI.pos.y, currMVTXI.pos.z);
-				XMFLOAT3 currNorm = XMFLOAT3(currMVTXI.normal.x, currMVTXI.normal.y, currMVTXI.normal.z);
-				XMFLOAT2 currUV = XMFLOAT2(currMVTXI.uv.x, currMVTXI.uv.y);
-
-				pVK[i].vPos = currVtx;
-				pVK[i].vNor = currNorm;
-				pVK[i].vTexcoord = currUV;
+				pVK[i].vPos			= currVtx;
+				pVK[i].vNor			= currNorm;
+				pVK[i].vTexcoord	= currUV;
 
 				// blend bone idx, weight
-				pVK[i].vBIdx[0] = (BYTE)currMVTXI.ctrlIndices.x;
-				pVK[i].vBIdx[1] = (BYTE)currMVTXI.ctrlIndices.y;
-				pVK[i].vBIdx[2] = (BYTE)currMVTXI.ctrlIndices.z;
-				pVK[i].vBIdx[3] = (BYTE)currMVTXI.ctrlIndices.w;
-				pVK[i].vBWeight.x = (float)currMVTXI.ctrlBlendWeights.x;
-				pVK[i].vBWeight.y = (float)currMVTXI.ctrlBlendWeights.y;
-				pVK[i].vBWeight.z = (float)currMVTXI.ctrlBlendWeights.z;
-				pVK[i].vBWeight.w = (float)currMVTXI.ctrlBlendWeights.w;
+				pVK[i].vBIdx[0]		= (BYTE)iter.ctrlIndices.x;
+				pVK[i].vBIdx[1]		= (BYTE)iter.ctrlIndices.y;
+				pVK[i].vBIdx[2]		= (BYTE)iter.ctrlIndices.z;
+				pVK[i].vBIdx[3]		= (BYTE)iter.ctrlIndices.w;
+				pVK[i].vBWeight.x	= (float)iter.ctrlBlendWeights.x;
+				pVK[i].vBWeight.y	= (float)iter.ctrlBlendWeights.y;
+				pVK[i].vBWeight.z	= (float)iter.ctrlBlendWeights.z;
+				pVK[i].vBWeight.w	= (float)iter.ctrlBlendWeights.w;
+
+				++i;
 			}
+
 			hr = CreateVertexBuffer(pd3dDevice, &meshNode.m_pVB, pVK, sizeof(FBX_DATA::VERTEX_DATA_SKIN), meshNode.vertexCount);
 			if (pVK)
 				delete[] pVK;
@@ -238,7 +249,7 @@ namespace ursine
 				{
 					if (currMI.diff_texNames[j] != "")
 					{
-						std::string path = "Assets\\";
+						std::string path = "Assets/";
 						std::string folder = currMI.diff_texNames[j];
 						path += folder;
 						D3DX11CreateShaderResourceViewFromFile(pd3dDevice, path.c_str(), NULL, NULL, &meshNode.fbxmaterialData[i].pSRV, NULL);
@@ -246,7 +257,6 @@ namespace ursine
 				}
 			}
 			// if there's no texture, just use default texture
-			// make it cylinderical 
 			else {
 				std::string path = "Assets\\uv.png";
 				D3DX11CreateShaderResourceViewFromFile(pd3dDevice, path.c_str(), NULL, NULL, &meshNode.fbxmaterialData[i].pSRV, NULL);
@@ -271,13 +281,14 @@ namespace ursine
 			bufDesc.ByteWidth = stride;
 			bufDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 			bufDesc.CPUAccessFlags = 0;
+
 			// currently, constant buffer creation always failed because constant buffer size should be multiple of 16
 			hr = pd3dDevice->CreateBuffer(&bufDesc, nullptr, &meshNode.fbxmaterialData[i].pMaterialCb);
 
-			meshNode.fbxmaterialData[i].materialConst.ambient = currMI.ambi_mcolor;
-			meshNode.fbxmaterialData[i].materialConst.diffuse = currMI.diff_mcolor;
-			meshNode.fbxmaterialData[i].materialConst.specular = currMI.spec_mcolor;
-			meshNode.fbxmaterialData[i].materialConst.emissive = currMI.emis_mcolor;
+			meshNode.fbxmaterialData[i].materialConst.ambient	= currMI.ambi_mcolor;
+			meshNode.fbxmaterialData[i].materialConst.diffuse	= currMI.diff_mcolor;
+			meshNode.fbxmaterialData[i].materialConst.specular	= currMI.spec_mcolor;
+			meshNode.fbxmaterialData[i].materialConst.emissive	= currMI.emis_mcolor;
 			meshNode.fbxmaterialData[i].materialConst.shineness = currMI.shineness;
 			meshNode.fbxmaterialData[i].materialConst.TransparencyFactor = currMI.TransparencyFactor;
 		}
@@ -295,7 +306,7 @@ namespace ursine
 
 		HRESULT hr = S_OK;
 		size_t nodeCount = m_meshNodeArray.size();
-		for (size_t i = 0; i<nodeCount; i++)
+		for (size_t i = 0; i<nodeCount; ++i)
 		{
 			pd3dDevice->CreateInputLayout(pLayout,
 				layoutSize,
@@ -316,29 +327,27 @@ namespace ursine
 		HRESULT hr = S_OK;
 		pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-		for (size_t i = 0; i<nodeCount; i++)
+		for (auto &iter : m_meshNodeArray)
 		{
-			FBX_DATA::MESH_NODE* node = &m_meshNodeArray[i];
-
-			if (node->vertexCount == 0)
+			if (iter.vertexCount == 0)
 				continue;
 
 			UINT stride = 0;
-			switch (node->m_Layout)
+			switch (iter.m_Layout)
 			{
 			case FBX_DATA::STATIC: stride = sizeof(FBX_DATA::VERTEX_DATA_STATIC); break;
 			case FBX_DATA::SKINNED: stride = sizeof(FBX_DATA::VERTEX_DATA_SKIN); break;
 			}
 			UINT offset = 0;
-			pImmediateContext->IASetVertexBuffers(0, 1, &node->m_pVB, &stride, &offset);
+			pImmediateContext->IASetVertexBuffers(0, 1, &iter.m_pVB, &stride, &offset);
 
 			DXGI_FORMAT indexbit = DXGI_FORMAT_R16_UINT;
-			if (node->m_indexBit == FBX_DATA::MESH_NODE::INDEX_32BIT)
+			if (iter.m_indexBit == FBX_DATA::MESH_NODE::INDEX_32BIT)
 				indexbit = DXGI_FORMAT_R32_UINT;
 
-			pImmediateContext->IASetInputLayout(node->m_pInputLayout);
-			pImmediateContext->IASetIndexBuffer(node->m_pIB, indexbit, 0);
-			pImmediateContext->DrawIndexed(node->indexCount, 0, 0);
+			pImmediateContext->IASetInputLayout(iter.m_pInputLayout);
+			pImmediateContext->IASetIndexBuffer(iter.m_pIB, indexbit, 0);
+			pImmediateContext->DrawIndexed(iter.indexCount, 0, 0);
 		}
 
 		return hr;
@@ -399,6 +408,7 @@ namespace ursine
 		case FBX_DATA::STATIC: stride = sizeof(FBX_DATA::VERTEX_DATA_STATIC); break;
 		case FBX_DATA::SKINNED: stride = sizeof(FBX_DATA::VERTEX_DATA_SKIN); break;
 		}
+
 		UINT offset = 0;
 		pImmediateContext->IASetVertexBuffers(0, 1, &node->m_pVB, &stride, &offset);
 		pImmediateContext->IASetInputLayout(node->m_pInputLayout);
@@ -460,10 +470,10 @@ namespace ursine
 			m_pFBX->Update(timedelta);
 	}
 
-	void CFBXRenderDX11::UpdateMatPal(XMMATRIX* SQT, XMMATRIX* matPal)
+	void CFBXRenderDX11::UpdateMatPal(XMMATRIX* matPal)
 	{
 		if (m_pFBX)
-			m_pFBX->UpdateMatPal(SQT, matPal);
+			m_pFBX->UpdateMatPal(matPal);
 	}
 
 	void CFBXRenderDX11::SetNodeMtxPal(XMMATRIX* matPal, FBX_DATA::MESH_NODE* pMesh)
@@ -474,7 +484,7 @@ namespace ursine
 		size_t mtSize = pMesh->m_meshMtxPal.size();
 		for (unsigned int i = 0; i < mtSize; ++i)
 		{
-			XMMATRIX palette_for_hlsl = pMesh->m_meshMtxPal[i]; //(*SQT) * pMesh->m_meshMtxPal[i];
+			XMMATRIX palette_for_hlsl = pMesh->m_meshMtxPal[i];
 			matPal[i] = XMMatrixTranspose(palette_for_hlsl);
 		}
 	}

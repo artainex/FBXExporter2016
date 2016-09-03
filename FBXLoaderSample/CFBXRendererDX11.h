@@ -23,7 +23,7 @@ namespace ursine
 		CFBXLoader*		m_pFBX;
 		std::vector<FBX_DATA::MESH_NODE>	m_meshNodeArray;
 		HRESULT CreateNodes(ID3D11Device*	pd3dDevice);
-		HRESULT VertexConstructionByModel(ID3D11Device* pd3dDevice, FBX_DATA::MESH_NODE& meshNode, const ModelInfo& modelInfo, unsigned int index);
+		HRESULT VertexConstructionByModel(ID3D11Device* pd3dDevice, FBX_DATA::MESH_NODE& meshNode, const MeshInfo& meshInfo);
 		HRESULT MaterialConstructionByModel(ID3D11Device* pd3dDevice, FBX_DATA::MESH_NODE& meshNode, const ModelInfo& modelInfo, unsigned int index);
 		HRESULT CreateVertexBuffer(ID3D11Device*	pd3dDevice, ID3D11Buffer** pBuffer, void* pVertices, uint32_t stride, uint32_t vertexCount);
 		HRESULT CreateIndexBuffer(ID3D11Device*	pd3dDevice, ID3D11Buffer** pBuffer, void* pIndices, uint32_t indexCount);
@@ -48,7 +48,7 @@ namespace ursine
 		bool IsSkinned();
 
 		void Update(double timedelta);
-		void UpdateMatPal(XMMATRIX* SQT = nullptr, XMMATRIX* matPal = nullptr);
+		void UpdateMatPal(XMMATRIX* matPal = nullptr);
 		void SetNodeMtxPal(XMMATRIX* matPal = nullptr, FBX_DATA::MESH_NODE* pMesh = nullptr);
 	};
 

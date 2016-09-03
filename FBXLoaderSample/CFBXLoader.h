@@ -74,7 +74,7 @@ namespace ursine
 		*
 		*  @return nothing
 		*/
-		void UpdateMatPal(XMMATRIX* SQT, XMMATRIX* matPal);
+		void UpdateMatPal(XMMATRIX* matPal = nullptr);
 
 		/** @brief fbx loader export function
 		*

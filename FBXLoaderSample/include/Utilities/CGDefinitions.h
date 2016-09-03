@@ -222,7 +222,7 @@
 #define	MIN(a, b)													(((a) < (b)) ? (a) : (b))
 
 template<typename TA>
-void	SWAP(TA& a, TA& b)											{	TA t=a; a=b; b=t;}
+void	SWAP(TA& a, TA& b)											{TA t=a; a=b; b=t;}
 
 
 // 특정값으로 한정할 때 사용합니다.

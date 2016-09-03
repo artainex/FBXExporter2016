@@ -20,14 +20,6 @@
 #pragma warning (disable : 4267)
 #pragma warning (disable : 4996)
 
-void Swap(void *a, void *b)
-{
-	void *temp;
-	temp = *(void**)a;
-	*(void**)a = *(void**)b;
-	*(void**)b = temp;
-}
-
 // Debug Test file
 //void DebugPrint()
 //{
@@ -128,14 +120,13 @@ namespace ursine
 		for (unsigned i = 0; i < m_Model->mAnimPose.size(); ++i)
 			m_Model->mAnimPose[i] = mScene->GetPose(i);
 
+		// Scene processing
 		ProcessScene(mScene->GetRootNode());
 
-		// resizing matrix palette
+		// resizing and initialize matrix palette
 		mtxPalArray.resize(m_Model->mBoneData.mbonehierarchy.size());
-		for (size_t i = 0; i < mtxPalArray.size(); ++i)
-		{
-			mtxPalArray[i] = XMMatrixIdentity();
-		}
+		for (auto &iter : mtxPalArray)
+			iter = XMMatrixIdentity();
 
 		// Export FBX model as custom file format
 		ReadyToExport();
@@ -148,10 +139,6 @@ namespace ursine
 		//The first thing to do is to create the FBX Manager which is the object allocator for almost all the classes in the SDK
 		pManager = FbxManager::Create();
 
-		//UAssertCatchable(pManager,
-		//	"FBXManager was null."
-		//	);
-
 		//Create an IOSettings object. This object holds all import/export settings.
 		FbxIOSettings* ios = FbxIOSettings::Create(pManager, IOSROOT);
 		pManager->SetIOSettings(ios);
@@ -162,10 +149,6 @@ namespace ursine
 
 		//Create an FBX scene. This object holds most objects imported/exported from/to files.
 		pScene = FbxScene::Create(pManager, "My Scene");
-
-		//UAssertCatchable(pScene,
-		//	"Unable to create scene."
-		//	);
 	}
 
 	void CFBXLoader::TriangulateRecursive(FbxNode* pNode)
@@ -195,19 +178,16 @@ namespace ursine
 
 	void CFBXLoader::Update(double timedelta)
 	{
-		//if (!mModel->mAnimationData.empty())
-		//	mModel->GetFinalTransform("Take 001", timedelta, mtxPalArray);
-
 		if (0 < m_AnimInfo.animCount && 0 < m_ModelInfo.mboneCount)
 			m_AnimInfo.GetFinalTransform(m_ModelInfo.mBoneInfoVec, "Take 001", timedelta, mtxPalArray);
 	}
 
-	void CFBXLoader::UpdateMatPal(XMMATRIX* SQT, XMMATRIX* matPal)
+	void CFBXLoader::UpdateMatPal(XMMATRIX* matPal)
 	{
 		size_t mtSize = mtxPalArray.size();
 		for (unsigned int i = 0; i < mtSize; ++i)
 		{
-			XMMATRIX palette_for_hlsl = mtxPalArray[i]; //(*SQT) * mtxPalArray[i];
+			XMMATRIX palette_for_hlsl = mtxPalArray[i];
 			matPal[i] = XMMatrixTranspose(palette_for_hlsl);
 		}
 	}
@@ -709,6 +689,7 @@ namespace ursine
 				}
 			}
 			break;
+
 			case FbxGeometryElement::eByPolygonVertex:
 			{
 				int lIndexByPolygonVertex = 0;
@@ -722,10 +703,7 @@ namespace ursine
 				{
 					int lPolygonSize = pMesh->GetPolygonSize(lPolygonIndex);
 
-					//UAssertCatchable(lPolygonSize == 3,
-					//	"Model is not triangulated.\npoly size: %i",
-					//	lPolygonSize
-					//	);
+					assert(lPolygonSize == 3 && "Poly size is not 3. Means model is not triangulated");
 
 					for (int i = 0; i < lPolygonSize; ++i)
 					{
@@ -781,6 +759,7 @@ namespace ursine
 				}
 			}
 			break;
+
 			case FbxGeometryElement::eByPolygonVertex:
 			{
 				int lIndexByPolygonVertex = 0;
@@ -795,10 +774,7 @@ namespace ursine
 				{
 					int lPolygonSize = pMesh->GetPolygonSize(lPolygonIndex);
 
-					//UAssertCatchable(lPolygonSize == 3,
-					//	"Model is not triangulated.\npoly size: %i",
-					//	lPolygonSize
-					//	);
+					assert(lPolygonSize == 3 && "Poly size is not 3. Means model is not triangulated");
 
 					for (int i = 0; i < lPolygonSize; ++i)
 					{
@@ -851,6 +827,7 @@ namespace ursine
 				}
 			}
 			break;
+
 			case FbxGeometryElement::eByPolygonVertex:
 			{
 				int lIndexByPolygonVertex = 0;
@@ -864,10 +841,7 @@ namespace ursine
 				{
 					int lPolygonSize = pMesh->GetPolygonSize(lPolygonIndex);
 
-					//UAssertCatchable(lPolygonSize == 3,
-					//	"Model is not triangulated.\npoly size: %i",
-					//	lPolygonSize
-					//	);
+					assert(lPolygonSize == 3 && "Poly size is not 3. Means model is not triangulated");
 
 					for (int i = 0; i < lPolygonSize; ++i)
 					{
@@ -881,6 +855,7 @@ namespace ursine
 						FbxVector4 lTangent = tangentElement->GetDirectArray().GetAt(lTangentIndex);
 						mConverter->ConvertVector(lTangent);
 						pData->tangents[lIndexByPolygonVertex] = FBXVectorToXMFLOAT3(lTangent.mData);
+
 						++lIndexByPolygonVertex;
 					}
 				}
@@ -957,14 +932,11 @@ namespace ursine
 				for (int lPolyIndex = 0; lPolyIndex < lPolyCount; ++lPolyIndex)
 				{
 					// build the max index array that we need to pass into MakePoly
-					const int lPolySize = pMesh->GetPolygonSize(lPolyIndex);
+					const int lPolygonSize = pMesh->GetPolygonSize(lPolyIndex);
 
-					//UAssertCatchable(lPolySize == 3,
-					//	"Model is not triangulated.\npoly size: %i",
-					//	lPolySize
-					//	);
+					assert(lPolygonSize == 3 && "Poly size is not 3. Means model is not triangulated");
 
-					for (int lVertIndex = 0; lVertIndex < lPolySize; ++lVertIndex)
+					for (int lVertIndex = 0; lVertIndex < lPolygonSize; ++lVertIndex)
 					{
 						if (lPolyIndexCounter < lIndexCount)
 						{
@@ -1005,26 +977,26 @@ namespace ursine
 		FbxProperty lProperty = pMaterial->FindProperty(pPropertyName);
 		FbxProperty lFactorProperty = pMaterial->FindProperty(pFactorPropertyName);
 
-		if (lProperty.IsValid() && lFactorProperty.IsValid())
-		{
-			lResult = lProperty.Get<FbxDouble3>();
-			double lFactor = lFactorProperty.Get<FbxDouble>();
-			if (lFactor != 1)
-			{
-				lResult[0] *= lFactor;
-				lResult[1] *= lFactor;
-				lResult[2] *= lFactor;
-			}
-			pElement->type = FBX_DATA::Material_Eles::Fac_Only_Color;
-		}
-
 		if (lProperty.IsValid())
 		{
+			// if factor property is valid, let's assume material has color at least
+			if (lFactorProperty.IsValid())
+			{
+				lResult = lProperty.Get<FbxDouble3>();
+				double lFactor = lFactorProperty.Get<FbxDouble>();
+				if (lFactor != 1)
+				{
+					lResult[0] *= lFactor;
+					lResult[1] *= lFactor;
+					lResult[2] *= lFactor;
+				}
+				pElement->type = FBX_DATA::Material_Eles::Fac_Only_Color;
+			}
+
 			int existTextureCount = 0;
 
 			// Normal Texture
 			const int lTextureCount = lProperty.GetSrcObjectCount<FbxFileTexture>();
-
 			for (int i = 0; i < lTextureCount; ++i)
 			{
 				FbxFileTexture* lFileTexture = lProperty.GetSrcObject<FbxFileTexture>(i);
@@ -1035,6 +1007,7 @@ namespace ursine
 				std::string uvSetString = uvsetName.Buffer();
 				fs::path fName(lFileTexture->GetFileName());
 				pElement->textureSetArray[uvSetString].push_back(fName.filename().string());
+
 				++existTextureCount;
 			}
 
@@ -1055,10 +1028,12 @@ namespace ursine
 					std::string uvSetString = uvsetName.Buffer();
 					fs::path fName(lFileTexture->GetFileName());
 					pElement->textureSetArray[uvSetString].push_back(fName.filename().string());
+
 					++existTextureCount;
 				}
 			}
 
+			// set element type based on number of textures
 			if (existTextureCount > 0)
 			{
 				if (pElement->type == FBX_DATA::Material_Eles::Fac_Only_Color)
@@ -1067,7 +1042,6 @@ namespace ursine
 					pElement->type = FBX_DATA::Material_Eles::Fac_Only_Texture;
 			}
 		}
-
 		return lResult;
 	}
 
@@ -1126,10 +1100,12 @@ namespace ursine
 				// Store Material 
 				// 1:1 type. this is for rendering function here. all meshdata has their own materials
 				pData->fbxmaterials.push_back(destMat);
+
 				// 1:many type. this is for exporting function
 				// we will use 1:many type only later. At this point, we should modify MaterialConst function
 				// so that meshnode can load mtrl and texture by mModel->mMaterials' name
 				m_Model->mMaterials.push_back(destMat);
+
 				// has a risk to store more than two exactly same materials
 			}
 		}
@@ -1560,10 +1536,7 @@ namespace ursine
 			FbxAMatrix  meshTransform;
 
 			if (targetFP)
-			{
-				//UAssert(-1 != nodeIdx, "Fuck you Fuck you");
 				meshTransform = GetPoseMatrix(targetFP, nodeIdx);
-			}
 			else
 				meshTransform = GetGlobalDefaultPosition(pNode);
 
@@ -1704,10 +1677,6 @@ namespace ursine
 
 	FbxAMatrix CFBXLoader::GetGeometryTransformation(FbxNode* pNode)
 	{
-		//UAssertCatchable(pNode,
-		//	"Mesh geometry was null."
-		//	);
-
 		const FbxVector4 lT = pNode->GetGeometricTranslation(FbxNode::eSourcePivot);
 		const FbxVector4 lR = pNode->GetGeometricRotation(FbxNode::eSourcePivot);
 		const FbxVector4 lS = pNode->GetGeometricScaling(FbxNode::eSourcePivot);
@@ -1724,10 +1693,7 @@ namespace ursine
 
 		FbxAMatrix parentTM;
 		if (targetFP)
-		{
-			//UAssert(-1 != nodeIdx, "Fuck you Fuck you");
 			parentTM = GetPoseMatrix(targetFP, nodeIdx);
-		}
 		else
 			parentTM = GetGlobalDefaultPosition(pParentNode);
 
@@ -1772,13 +1738,13 @@ namespace ursine
 					newMV.normal = md.normals[iter];
 			}
 
-			//if (!md.binormals.empty())
-			//{
-			//    if (md.binormalMode == FbxGeometryElement::eByPolygonVertex)
-			//        newMV.binormal = md.binormals[i];
-			//    else if (md.binormalMode == FbxGeometryElement::eByControlPoint)
-			//        newMV.binormal = md.binormals[iter];
-			//}
+			if (!md.binormals.empty())
+			{
+			    if (md.binormalMode == FbxGeometryElement::eByPolygonVertex)
+			        newMV.binormal = md.binormals[i];
+			    else if (md.binormalMode == FbxGeometryElement::eByControlPoint)
+			        newMV.binormal = md.binormals[iter];
+			}
 
 			if (!md.tangents.empty())
 			{

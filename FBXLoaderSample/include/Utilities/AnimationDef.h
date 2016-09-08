@@ -34,58 +34,58 @@ using namespace DirectX;
 
 namespace pseudodx
 {
-    struct XMUINT4
-    {
-        uint32_t x;
-        uint32_t y;
-        uint32_t z;
-        uint32_t w;
-        XMUINT4() {}
-        XMUINT4(uint32_t _x, uint32_t _y, uint32_t _z, uint32_t _w) : x(_x), y(_y), z(_z), w(_w) {}
-        XMUINT4& operator= (const XMUINT4& Uint4) { x = Uint4.x; y = Uint4.y; z = Uint4.z; w = Uint4.w; return *this; }
-        bool operator== (const XMUINT4& Uint4) { return ( (x == Uint4.x) && (y == Uint4.y) && (z == Uint4.z) && (w == Uint4.w) ) ? true : false; }
-        bool operator!= (const XMUINT4& Uint4) { return ( !(*this == Uint4) ); }
-    };
+	struct XMUINT4
+	{
+		uint32_t x;
+		uint32_t y;
+		uint32_t z;
+		uint32_t w;
+		XMUINT4() {}
+		XMUINT4(uint32_t _x, uint32_t _y, uint32_t _z, uint32_t _w) : x(_x), y(_y), z(_z), w(_w) {}
+		XMUINT4& operator= (const XMUINT4& Uint4) { x = Uint4.x; y = Uint4.y; z = Uint4.z; w = Uint4.w; return *this; }
+		bool operator== (const XMUINT4& Uint4) { return ((x == Uint4.x) && (y == Uint4.y) && (z == Uint4.z) && (w == Uint4.w)) ? true : false; }
+		bool operator!= (const XMUINT4& Uint4) { return (!(*this == Uint4)); }
+	};
 
-    struct XMFLOAT4
-    {
-        float x;
-        float y;
-        float z;
-        float w;
-        XMFLOAT4() {}
-        XMFLOAT4(float _x, float _y, float _z, float _w) : x(_x), y(_y), z(_z), w(_w) {}
-        XMFLOAT4& operator= (const XMFLOAT4& Float4) { x = Float4.x; y = Float4.y; z = Float4.z; w = Float4.w; return *this; }
-        bool operator== (const XMFLOAT4& Float4) { return ( (x == Float4.x) && (y == Float4.y) && (z == Float4.z) && (w == Float4.w) ) ? true : false; }
-        bool operator!= (const XMFLOAT4& Float4) { return ( !(*this == Float4) ); }
-    };
+	struct XMFLOAT4
+	{
+		float x;
+		float y;
+		float z;
+		float w;
+		XMFLOAT4() {}
+		XMFLOAT4(float _x, float _y, float _z, float _w) : x(_x), y(_y), z(_z), w(_w) {}
+		XMFLOAT4& operator= (const XMFLOAT4& Float4) { x = Float4.x; y = Float4.y; z = Float4.z; w = Float4.w; return *this; }
+		bool operator== (const XMFLOAT4& Float4) { return ((x == Float4.x) && (y == Float4.y) && (z == Float4.z) && (w == Float4.w)) ? true : false; }
+		bool operator!= (const XMFLOAT4& Float4) { return (!(*this == Float4)); }
+	};
 
-    struct XMFLOAT3
-    {
-        float x;
-        float y;
-        float z;
+	struct XMFLOAT3
+	{
+		float x;
+		float y;
+		float z;
 
-        XMFLOAT3() {}
-        XMFLOAT3(float _x, float _y, float _z) : x(_x), y(_y), z(_z) {}
-        XMFLOAT3& operator+ (const XMFLOAT3& Float3) { x += Float3.x; y += Float3.y; z += Float3.z; return *this; }
-        XMFLOAT3& operator/ (const float& floatval) { x /= floatval; y /= floatval; z /= floatval; return *this; }
-        XMFLOAT3& operator= (const XMFLOAT3& Float3) { x = Float3.x; y = Float3.y; z = Float3.z; return *this; }
-        bool operator== (const XMFLOAT3& Float3) { return ( (x == Float3.x) && (y == Float3.y) && (z == Float3.z) ) ? true : false; }
-        bool operator!= (const XMFLOAT3& Float3) { return ( !(*this == Float3) ); }
-    };
+		XMFLOAT3() {}
+		XMFLOAT3(float _x, float _y, float _z) : x(_x), y(_y), z(_z) {}
+		XMFLOAT3& operator+ (const XMFLOAT3& Float3) { x += Float3.x; y += Float3.y; z += Float3.z; return *this; }
+		XMFLOAT3& operator/ (const float& floatval) { x /= floatval; y /= floatval; z /= floatval; return *this; }
+		XMFLOAT3& operator= (const XMFLOAT3& Float3) { x = Float3.x; y = Float3.y; z = Float3.z; return *this; }
+		bool operator== (const XMFLOAT3& Float3) { return ((x == Float3.x) && (y == Float3.y) && (z == Float3.z)) ? true : false; }
+		bool operator!= (const XMFLOAT3& Float3) { return (!(*this == Float3)); }
+	};
 
-    struct XMFLOAT2
-    {
-        float x;
-        float y;
+	struct XMFLOAT2
+	{
+		float x;
+		float y;
 
-        XMFLOAT2() {}
-        XMFLOAT2(float _x, float _y) : x(_x), y(_y) {}
-        XMFLOAT2& operator= (const XMFLOAT2& Float2) { x = Float2.x; y = Float2.y; return *this; }
-        bool operator== (const XMFLOAT2& Float2) { return ( (x == Float2.x) && (y == Float2.y) ) ? true : false; }
-        bool operator!= (const XMFLOAT2& Float2) { return ( !(*this == Float2) ); }
-    };
+		XMFLOAT2() {}
+		XMFLOAT2(float _x, float _y) : x(_x), y(_y) {}
+		XMFLOAT2& operator= (const XMFLOAT2& Float2) { x = Float2.x; y = Float2.y; return *this; }
+		bool operator== (const XMFLOAT2& Float2) { return ((x == Float2.x) && (y == Float2.y)) ? true : false; }
+		bool operator!= (const XMFLOAT2& Float2) { return (!(*this == Float2)); }
+	};
 }
 
 namespace ursine
@@ -327,7 +327,7 @@ namespace ursine
 
 		struct BlendIdxWeight
 		{
-			unsigned int mBlendingIndex;
+			UINT mBlendingIndex;
 			double mBlendingWeight;
 
 			BlendIdxWeight() :
@@ -341,12 +341,12 @@ namespace ursine
 			}
 		};
 
-		INLINE bool compare_bw_ascend(BlendIdxWeight lhs, BlendIdxWeight rhs)
+		INLINE bool compare_bw_ascend(const BlendIdxWeight &lhs, BlendIdxWeight &rhs)
 		{
 			return lhs.mBlendingWeight < rhs.mBlendingWeight;
 		}
 
-		INLINE bool compare_bw_descend(BlendIdxWeight lhs, BlendIdxWeight rhs)
+		INLINE bool compare_bw_descend(const BlendIdxWeight &lhs, BlendIdxWeight &rhs)
 		{
 			return lhs.mBlendingWeight > rhs.mBlendingWeight;
 		}
@@ -361,7 +361,7 @@ namespace ursine
 		};
 
 		// Control Points
-		typedef std::unordered_map<unsigned int, CtrlPoint> ControlPoints;
+		typedef std::unordered_map<UINT, CtrlPoint> ControlPoints;
 
 		struct AnimationClip
 		{
@@ -437,12 +437,12 @@ namespace ursine
 			SMat4 meshTM;
 
 			std::vector<pseudodx::XMFLOAT3> vertices;
-			std::vector<unsigned int> indices;
+			std::vector<UINT> indices;
 			std::vector<pseudodx::XMFLOAT3> normals;
 			std::vector<pseudodx::XMFLOAT3> binormals;
 			std::vector<pseudodx::XMFLOAT3> tangents;
 			std::vector<pseudodx::XMFLOAT2> uvs;
-			std::vector<unsigned int> materialIndices;
+			std::vector<UINT> materialIndices;
 
 			// material
 			std::vector<FbxMaterial> fbxmaterials;
@@ -518,7 +518,7 @@ namespace ursine
 
 			void Release()
 			{
-				for (unsigned int i = 0; i < fbxmaterialData.size(); ++i)
+				for (UINT i = 0; i < fbxmaterialData.size(); ++i)
 				{
 					fbxmaterialData[i].Release();
 				}

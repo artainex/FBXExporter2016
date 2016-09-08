@@ -94,15 +94,15 @@ namespace ursine
 	public:
 		std::string     name;
 		XMMATRIX		meshTM;
-		unsigned int    meshVtxInfoCount;
-		unsigned int    meshVtxIdxCount;
-		unsigned int    mtrlCount;
-		unsigned int    mtrlIndexCount;
+		UINT    meshVtxInfoCount;
+		UINT    meshVtxIdxCount;
+		UINT    mtrlCount;
+		UINT    mtrlIndexCount;
 		std::vector< std::string > mtrlName;
 
 		std::vector<MeshVertex>     meshVtxInfos;
-		std::vector<unsigned int>   meshVtxIndices; // this will be used when we do vtx reconstruction
-		std::vector<unsigned int>   materialIndices;
+		std::vector<UINT>   meshVtxIndices; // this will be used when we do vtx reconstruction
+		std::vector<UINT>   materialIndices;
 
 		MeshInfo();
 		virtual ~MeshInfo();

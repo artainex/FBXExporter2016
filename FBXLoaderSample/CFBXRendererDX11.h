@@ -24,8 +24,8 @@ namespace ursine
 		std::vector<FBX_DATA::MESH_NODE>	m_meshNodeArray;
 		HRESULT CreateNodes(ID3D11Device*	pd3dDevice);
 		HRESULT VertexConstructionByModel(ID3D11Device* pd3dDevice, FBX_DATA::MESH_NODE& meshNode, const MeshInfo& meshInfo);
-		HRESULT MaterialConstructionByModel(ID3D11Device* pd3dDevice, FBX_DATA::MESH_NODE& meshNode, const ModelInfo& modelInfo, unsigned int index);
-		HRESULT CreateVertexBuffer(ID3D11Device*	pd3dDevice, ID3D11Buffer** pBuffer, void* pVertices, uint32_t stride, uint32_t vertexCount);
+		HRESULT MaterialConstructionByModel(ID3D11Device* pd3dDevice, FBX_DATA::MESH_NODE& meshNode, const ModelInfo& modelInfo, const UINT& index);
+		HRESULT CreateVertexBuffer(ID3D11Device* pd3dDevice, ID3D11Buffer** pBuffer, void* pVertices, uint32_t stride, uint32_t vertexCount);
 		HRESULT CreateIndexBuffer(ID3D11Device*	pd3dDevice, ID3D11Buffer** pBuffer, void* pIndices, uint32_t indexCount);
 
 	public:
@@ -34,7 +34,7 @@ namespace ursine
 		void Release();
 
 		HRESULT LoadFBX(const char* filename, ID3D11Device*	pd3dDevice);
-		HRESULT CreateInputLayout(ID3D11Device*	pd3dDevice, const void* pShaderBytecodeWithInputSignature, size_t BytecodeLength, D3D11_INPUT_ELEMENT_DESC* pLayout, unsigned int layoutSize);
+		HRESULT CreateInputLayout(ID3D11Device*	pd3dDevice, const void* pShaderBytecodeWithInputSignature, size_t BytecodeLength, D3D11_INPUT_ELEMENT_DESC* pLayout, UINT layoutSize);
 
 		HRESULT RenderAll(ID3D11DeviceContext* pImmediateContext);
 		HRESULT RenderNode(ID3D11DeviceContext* pImmediateContext, const size_t nodeId);

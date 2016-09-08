@@ -18,7 +18,7 @@
 
 namespace ursine
 {
-	typedef std::vector<unsigned int> KeyIndex;
+	typedef std::vector<UINT> KeyIndex;
 	typedef std::vector<KeyIndex> KeyIndices;
 	typedef std::vector<FBX_DATA::KeyFrame> KFrame;
 	typedef std::vector<KFrame> KFrames;
@@ -28,13 +28,13 @@ namespace ursine
 	struct AnimData
 	{
 		std::string clipname;
-		unsigned int clipCount;	// how many clips in this animation?
-		unsigned int boneCount;	// how many bones in this model
+		UINT clipCount;	// how many clips in this animation?
+		UINT boneCount;	// how many bones in this model
 		KeyIndices keyIndices;	// how many keys does each bone have?
 		KFrms keyframes;
 
 		AnimData() : clipname(""), clipCount(0), boneCount(0), keyIndices(0), keyframes(0) {}
-		void Interpolate(int clipindex, int boneindex, double timePos, XMMATRIX& bonetoParentTMs);
+		void Interpolate(const int& clipindex, int boneindex, double timePos, XMMATRIX& bonetoParentTMs);
 	};
 
 	// model's animation data
@@ -42,15 +42,15 @@ namespace ursine
 	{
 	public:
 		std::string name;  // model name
-		unsigned int animCount; // animation count is same as the number of meshes of the model
+		UINT animCount; // animation count is same as the number of meshes of the model
 		std::vector<AnimData> animDataArr;	// and so does animData
 
-		/** @brief animation information constructor
-		*
-		*  this will construct animation information object
-		*
-		*  @return nothing
-		*/
+											/** @brief animation information constructor
+											*
+											*  this will construct animation information object
+											*
+											*  @return nothing
+											*/
 		AnimInfo(void);
 
 		/** @brief animation information destructor
@@ -77,8 +77,8 @@ namespace ursine
 		*/
 		void GetFinalTransform(const std::vector<BoneInfo>& boneInfoVec, const std::string& clipName, double timePos, std::vector<XMMATRIX>& finalTransform);
 
-		void Interpolate(int clipindex, double timePos, std::vector<XMMATRIX>& toParentTMs);
+		void Interpolate(const int& clipindex, double timePos, std::vector<XMMATRIX>& toParentTMs);
 
-		const AnimData& FindAnimClip(int* index, const std::string& clipName) const;
+		void FindAnimClip(int* index, int* boneCount, const std::string& clipName) const;
 	};
 };

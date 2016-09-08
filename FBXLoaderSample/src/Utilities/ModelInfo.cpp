@@ -43,15 +43,15 @@ namespace ursine
 	bool ModelInfo::SerializeIn(HANDLE hFile)
 	{
 		DWORD nBytesRead;
-		unsigned int i = 0;
+		UINT i = 0;
 		if (INVALID_HANDLE_VALUE != hFile)
 		{
 			char tmp_name[MAXTEXTLEN];
 			ReadFile(hFile, tmp_name, sizeof(char) * MAXTEXTLEN, &nBytesRead, nullptr);
 			name = tmp_name;
-			ReadFile(hFile, &mmeshCount, sizeof(unsigned int), &nBytesRead, nullptr);
-			ReadFile(hFile, &mmaterialCount, sizeof(unsigned int), &nBytesRead, nullptr);
-			ReadFile(hFile, &mboneCount, sizeof(unsigned int), &nBytesRead, nullptr);
+			ReadFile(hFile, &mmeshCount, sizeof(UINT), &nBytesRead, nullptr);
+			ReadFile(hFile, &mmaterialCount, sizeof(UINT), &nBytesRead, nullptr);
+			ReadFile(hFile, &mboneCount, sizeof(UINT), &nBytesRead, nullptr);
 
 			for (i = 0; i < mmeshCount; ++i)
 				mMeshInfoVec[i].SerializeIn(hFile);
@@ -68,15 +68,15 @@ namespace ursine
 	bool ModelInfo::SerializeOut(HANDLE hFile)
 	{
 		DWORD nBytesWrite;
-		unsigned int i = 0;
+		UINT i = 0;
 		if (INVALID_HANDLE_VALUE != hFile)
 		{
 			char tmp_name[MAXTEXTLEN];
 			WriteFile(hFile, tmp_name, sizeof(char) * MAXTEXTLEN, &nBytesWrite, nullptr);
 			name = tmp_name;
-			WriteFile(hFile, &mmeshCount, sizeof(unsigned int), &nBytesWrite, nullptr);
-			WriteFile(hFile, &mmaterialCount, sizeof(unsigned int), &nBytesWrite, nullptr);
-			WriteFile(hFile, &mboneCount, sizeof(unsigned int), &nBytesWrite, nullptr);
+			WriteFile(hFile, &mmeshCount, sizeof(UINT), &nBytesWrite, nullptr);
+			WriteFile(hFile, &mmaterialCount, sizeof(UINT), &nBytesWrite, nullptr);
+			WriteFile(hFile, &mboneCount, sizeof(UINT), &nBytesWrite, nullptr);
 
 			for (i = 0; i < mmeshCount; ++i)
 				mMeshInfoVec[i].SerializeOut(hFile);

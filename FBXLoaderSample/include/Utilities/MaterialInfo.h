@@ -34,10 +34,10 @@ namespace ursine
 		pseudodx::XMFLOAT4 emis_mcolor;
 		pseudodx::XMFLOAT4 spec_mcolor;
 
-		unsigned int ambi_mapCount;
-		unsigned int diff_mapCount;
-		unsigned int emis_mapCount;
-		unsigned int spec_mapCount;
+		UINT ambi_mapCount;
+		UINT diff_mapCount;
+		UINT emis_mapCount;
+		UINT spec_mapCount;
 
 		std::vector< std::string > ambi_texNames;
 		std::vector< std::string > diff_texNames;

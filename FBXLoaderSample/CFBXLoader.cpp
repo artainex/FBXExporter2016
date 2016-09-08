@@ -185,7 +185,7 @@ namespace ursine
 	void CFBXLoader::UpdateMatPal(XMMATRIX* matPal)
 	{
 		size_t mtSize = mtxPalArray.size();
-		for (unsigned int i = 0; i < mtSize; ++i)
+		for (UINT i = 0; i < mtSize; ++i)
 		{
 			XMMATRIX palette_for_hlsl = mtxPalArray[i];
 			matPal[i] = XMMatrixTranspose(palette_for_hlsl);
@@ -196,7 +196,7 @@ namespace ursine
 	bool CFBXLoader::ReadyToExport()
 	{
 		// unify the loader data structure and exporter data structure someday
-		unsigned int i = 0, j = 0, k = 0;
+		UINT i = 0, j = 0, k = 0;
 
 		///////////////////////////////////////////////////////////////
 		// Model Info
@@ -207,7 +207,7 @@ namespace ursine
 
 			i = 0;
 
-			m_ModelInfo.mmeshCount = static_cast<unsigned int>(m_Model->mMeshData.size());
+			m_ModelInfo.mmeshCount = static_cast<UINT>(m_Model->mMeshData.size());
 			m_ModelInfo.mMeshInfoVec.resize(m_ModelInfo.mmeshCount);
 
 			for (auto &iter : m_ModelInfo.mMeshInfoVec)
@@ -219,7 +219,7 @@ namespace ursine
 
 				// Reconstruct Vertices and Indices for data compression
 				std::vector<ursine::MeshVertex> rmvVec;
-				std::vector<unsigned int> rIVec;
+				std::vector<UINT> rIVec;
 				Reconstruct(i, rmvVec, rIVec, currMD);
 
 				j = 0;
@@ -245,7 +245,7 @@ namespace ursine
 
 			// material data
 			i = 0;
-			m_ModelInfo.mmaterialCount = static_cast<unsigned int>(m_Model->mMaterials.size());
+			m_ModelInfo.mmaterialCount = static_cast<UINT>(m_Model->mMaterials.size());
 			m_ModelInfo.mMtrlInfoVec.resize(m_ModelInfo.mmaterialCount);
 			for (auto &iter : m_ModelInfo.mMtrlInfoVec)
 			{
@@ -304,7 +304,7 @@ namespace ursine
 
 			// bone data
 			i = 0;
-			m_ModelInfo.mboneCount = static_cast<unsigned int>(m_Model->mBoneData.mbonehierarchy.size());
+			m_ModelInfo.mboneCount = static_cast<UINT>(m_Model->mBoneData.mbonehierarchy.size());
 			m_ModelInfo.mBoneInfoVec.resize(m_ModelInfo.mboneCount);
 			for (auto &iter : m_ModelInfo.mBoneInfoVec)
 			{
@@ -358,7 +358,7 @@ namespace ursine
 			i = 0;
 
 			m_AnimInfo.name = m_Model->name;
-			m_AnimInfo.animCount = static_cast<unsigned int>(m_Model->mAnimationData.size());
+			m_AnimInfo.animCount = static_cast<UINT>(m_Model->mAnimationData.size());
 			m_AnimInfo.animDataArr.resize(m_AnimInfo.animCount);
 
 			for (auto &iter : m_AnimInfo.animDataArr)
@@ -367,7 +367,7 @@ namespace ursine
 				iter.keyframes.resize(m_AnimInfo.animCount);
 
 				// counts
-				iter.clipCount = static_cast<unsigned int>(m_Model->mAnimationData[i].animations.size());
+				iter.clipCount = static_cast<UINT>(m_Model->mAnimationData[i].animations.size());
 
 				/////////////////////////////////////////////////////
 				// Push back dummy value should includes specific time, not default
@@ -381,15 +381,15 @@ namespace ursine
 					iter.clipname = iter1.first.c_str();
 
 					// set keycount / keyframes
-					iter.boneCount = static_cast<unsigned int>(iter1.second.boneAnim.size());
+					iter.boneCount = static_cast<UINT>(iter1.second.boneAnim.size());
 					iter.keyIndices[i].resize(iter.boneCount);
 					iter.keyframes[i].resize(iter.boneCount);
 
 					// Unifying keyframes of each animation
-					unsigned int maxkfCount = 0;
+					UINT maxkfCount = 0;
 					for (auto &iter2 : iter1.second.boneAnim)
 					{
-						unsigned int kfCount = static_cast<unsigned int>(iter2.keyFrames.size());
+						UINT kfCount = static_cast<UINT>(iter2.keyFrames.size());
 						if (maxkfCount < kfCount)
 							maxkfCount = kfCount;
 					}
@@ -397,7 +397,7 @@ namespace ursine
 					j = 0;
 					for (auto &iter2 : iter1.second.boneAnim)
 					{
-						unsigned int kfCount = static_cast<unsigned int>(iter2.keyFrames.size());
+						UINT kfCount = static_cast<UINT>(iter2.keyFrames.size());
 
 						iter.keyIndices[i][j] = maxkfCount;
 						iter.keyframes[i][j].resize(maxkfCount);
@@ -443,7 +443,7 @@ namespace ursine
 		}
 
 		// Weight blending for control points
-		unsigned int index = 0;
+		UINT index = 0;
 		ProcessWeightBlend(pRoot, index);
 		// Animation
 		ProcessAnimation();
@@ -623,11 +623,11 @@ namespace ursine
 		if (nullptr == pMesh)
 			return;
 
-		unsigned int ctrlPtCnt = pMesh->GetControlPointsCount();
+		UINT ctrlPtCnt = pMesh->GetControlPointsCount();
 
 		// vertices
 		pData->vertices.resize(ctrlPtCnt);
-		for (unsigned int i = 0; i < ctrlPtCnt; ++i)
+		for (UINT i = 0; i < ctrlPtCnt; ++i)
 		{
 			FbxVector4 v = pMesh->GetControlPointAt(i);
 			mConverter->ConvertVector(v);
@@ -635,11 +635,11 @@ namespace ursine
 		}
 
 		// indicies
-		unsigned int indexCnt = pMesh->GetPolygonVertexCount();
+		UINT indexCnt = pMesh->GetPolygonVertexCount();
 		pData->indices.resize(indexCnt);
 		int* indexData = pMesh->GetPolygonVertices();
 
-		for (unsigned int i = 0; i < indexCnt; ++i)
+		for (UINT i = 0; i < indexCnt; ++i)
 		{
 			pData->indices[i] = indexData[i];
 			// change index order abc->acb
@@ -649,7 +649,7 @@ namespace ursine
 			{
 				if (2 == i % 3)
 				{
-					unsigned int temp = pData->indices[i - 1];
+					UINT temp = pData->indices[i - 1];
 					pData->indices[i - 1] = pData->indices[i];
 					pData->indices[i] = temp;
 				}
@@ -896,10 +896,10 @@ namespace ursine
 			{
 			case FbxGeometryElement::eByControlPoint:
 			{
-				unsigned int uvCount = pMesh->GetControlPointsCount();
+				UINT uvCount = pMesh->GetControlPointsCount();
 
 				pData->uvs.resize(uvCount);
-				for (unsigned int lVertexIndex = 0; lVertexIndex < uvCount; ++lVertexIndex)
+				for (UINT lVertexIndex = 0; lVertexIndex < uvCount; ++lVertexIndex)
 				{
 					int lUVIndex = 0;
 
@@ -1118,7 +1118,7 @@ namespace ursine
 			if (materialElement->GetMappingMode() == FbxGeometryElement::eByPolygon)
 			{
 				pData->materialIndices.resize(materialIndicies.GetCount());
-				unsigned int i = 0;
+				UINT i = 0;
 				for (auto &iter : pData->materialIndices)
 				{
 					iter = materialIndicies[i];
@@ -1134,7 +1134,7 @@ namespace ursine
 		}
 	}
 
-	void CFBXLoader::ProcessWeightBlend(FbxNode* pNode, unsigned int& index)
+	void CFBXLoader::ProcessWeightBlend(FbxNode* pNode, UINT& index)
 	{
 		FbxMesh* mesh = pNode->GetMesh();
 		// target control point vector
@@ -1142,7 +1142,7 @@ namespace ursine
 		{
 			unsigned numOfDeformers = mesh->GetDeformerCount();
 
-			for (unsigned int deformerIndex = 0; deformerIndex < numOfDeformers; ++deformerIndex)
+			for (UINT deformerIndex = 0; deformerIndex < numOfDeformers; ++deformerIndex)
 			{
 				// Skin
 				FbxSkin* skin = reinterpret_cast<FbxSkin*>(mesh->GetDeformer(deformerIndex, FbxDeformer::eSkin));
@@ -1150,13 +1150,13 @@ namespace ursine
 					continue;
 
 				// cluster is each mesh fragmented from mesh
-				unsigned int numCluster = skin->GetClusterCount();
+				UINT numCluster = skin->GetClusterCount();
 
 				// control point is vertex of the cluster
 				// these control points will be influenced by bone animation
 				FBX_DATA::ControlPoints newCtrlPoints;
 
-				for (unsigned int clusterIndex = 0; clusterIndex < numCluster; ++clusterIndex)
+				for (UINT clusterIndex = 0; clusterIndex < numCluster; ++clusterIndex)
 				{
 					FbxCluster* cluster = skin->GetCluster(clusterIndex);
 
@@ -1275,7 +1275,7 @@ namespace ursine
 
 	int CFBXLoader::GetJointIndexByName(const std::string& inJointName)
 	{
-		for (unsigned int i = 0; i < m_Model->mBoneData.mbonehierarchy.size(); ++i)
+		for (UINT i = 0; i < m_Model->mBoneData.mbonehierarchy.size(); ++i)
 		{
 			if (m_Model->mBoneData.mbonehierarchy[i].mName == inJointName)
 				return i;
@@ -1721,9 +1721,9 @@ namespace ursine
 	}
 
 	//reconstruct vertices and indices
-	void CFBXLoader::Reconstruct(unsigned int meshIdx, std::vector<ursine::MeshVertex>& target_mvs, std::vector<unsigned int>& target_mis, const FBX_DATA::MeshData& md)
+	void CFBXLoader::Reconstruct(UINT meshIdx, std::vector<ursine::MeshVertex>& target_mvs, std::vector<UINT>& target_mis, const FBX_DATA::MeshData& md)
 	{
-		unsigned int i = 0;
+		UINT i = 0;
 		for (auto &iter : md.indices)
 		{
 			ursine::MeshVertex newMV;
@@ -1779,7 +1779,7 @@ namespace ursine
 			}
 
 			bool bFound = false;
-			unsigned int index = 0;
+			UINT index = 0;
 			for (index = 0; index < target_mvs.size(); ++index)
 			{
 				if (newMV == target_mvs[index])

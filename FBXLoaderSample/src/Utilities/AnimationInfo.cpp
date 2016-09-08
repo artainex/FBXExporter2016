@@ -16,7 +16,7 @@
 
 namespace ursine
 {
-	void AnimData::Interpolate(int clipindex, int boneindex, double timePos, XMMATRIX& bonetoParentTMs)
+	void AnimData::Interpolate(const int& clipindex, int boneindex, double timePos, XMMATRIX& bonetoParentTMs)
 	{
 		// rot * trsnl is the correct order in row major
 		// which clips which bone? need which clip index
@@ -46,7 +46,7 @@ namespace ursine
 		} // t is between two key frames, so interpolate.
 		else
 		{
-			for (unsigned int j = 0; j < keyCount - 1; ++j)
+			for (UINT j = 0; j < keyCount - 1; ++j)
 			{
 				if (timePos >= keyFrms[j].time && timePos <= keyFrms[j + 1].time)
 				{
@@ -89,26 +89,26 @@ namespace ursine
 	bool AnimInfo::SerializeIn(HANDLE hFile)
 	{
 		DWORD nByteRead;
-		unsigned int i = 0, j = 0, k = 0, l = 0;
+		UINT i = 0, j = 0, k = 0, l = 0;
 
 		ReadFile(hFile, &name, sizeof(char) * MAXTEXTLEN, &nByteRead, nullptr);
-		ReadFile(hFile, &animCount, sizeof(unsigned int), &nByteRead, nullptr);
+		ReadFile(hFile, &animCount, sizeof(UINT), &nByteRead, nullptr);
 		for (i = 0; i < animCount; ++i)
 		{
 			// serializing counts
 			ReadFile(hFile, &animDataArr[i].clipname, sizeof(char) * MAXTEXTLEN, &nByteRead, nullptr);
-			ReadFile(hFile, &animDataArr[i].clipCount, sizeof(unsigned int), &nByteRead, nullptr);
-			ReadFile(hFile, &animDataArr[i].boneCount, sizeof(unsigned int), &nByteRead, nullptr);
-			animDataArr[i].keyIndices.resize( animDataArr[i].clipCount );
-			animDataArr[i].keyframes.resize( animDataArr[i].clipCount );
+			ReadFile(hFile, &animDataArr[i].clipCount, sizeof(UINT), &nByteRead, nullptr);
+			ReadFile(hFile, &animDataArr[i].boneCount, sizeof(UINT), &nByteRead, nullptr);
+			animDataArr[i].keyIndices.resize(animDataArr[i].clipCount);
+			animDataArr[i].keyframes.resize(animDataArr[i].clipCount);
 			for (j = 0; j < animDataArr[i].clipCount; ++j)
 			{
-				animDataArr[i].keyIndices[j].resize( animDataArr[i].boneCount );
-				animDataArr[i].keyframes[j].resize( animDataArr[i].boneCount );
+				animDataArr[i].keyIndices[j].resize(animDataArr[i].boneCount);
+				animDataArr[i].keyframes[j].resize(animDataArr[i].boneCount);
 				for (k = 0; k < animDataArr[i].boneCount; ++k)
 				{
-					ReadFile(hFile, &animDataArr[i].keyIndices[j][k], sizeof(unsigned int), &nByteRead, nullptr);
-					animDataArr[i].keyframes[j][k].resize( animDataArr[i].keyIndices[j][k] );
+					ReadFile(hFile, &animDataArr[i].keyIndices[j][k], sizeof(UINT), &nByteRead, nullptr);
+					animDataArr[i].keyframes[j][k].resize(animDataArr[i].keyIndices[j][k]);
 					for (l = 0; l <animDataArr[i].keyIndices[j][k]; ++l)
 					{
 						FBX_DATA::KeyFrame* currKF = &animDataArr[i].keyframes[j][k][l];
@@ -123,21 +123,21 @@ namespace ursine
 	bool AnimInfo::SerializeOut(HANDLE hFile)
 	{
 		DWORD nBytesWrite;
-		unsigned int i = 0, j = 0, k = 0, l = 0;
+		UINT i = 0, j = 0, k = 0, l = 0;
 
 		WriteFile(hFile, &name, sizeof(char) * MAXTEXTLEN, &nBytesWrite, nullptr);
-		WriteFile(hFile, &animCount, sizeof(unsigned int), &nBytesWrite, nullptr);
+		WriteFile(hFile, &animCount, sizeof(UINT), &nBytesWrite, nullptr);
 		for (i = 0; i < animCount; ++i)
 		{
 			// serializing counts
 			WriteFile(hFile, &animDataArr[i].clipname, sizeof(char) * MAXTEXTLEN, &nBytesWrite, nullptr);
-			WriteFile(hFile, &animDataArr[i].clipCount, sizeof(unsigned int), &nBytesWrite, nullptr);
-			WriteFile(hFile, &animDataArr[i].boneCount, sizeof(unsigned int), &nBytesWrite, nullptr);
+			WriteFile(hFile, &animDataArr[i].clipCount, sizeof(UINT), &nBytesWrite, nullptr);
+			WriteFile(hFile, &animDataArr[i].boneCount, sizeof(UINT), &nBytesWrite, nullptr);
 			for (j = 0; j < animDataArr[i].clipCount; ++j)
 			{
 				for (k = 0; k < animDataArr[i].boneCount; ++k)
 				{
-					WriteFile(hFile, &animDataArr[i].keyIndices[j][k], sizeof(unsigned int), &nBytesWrite, nullptr);
+					WriteFile(hFile, &animDataArr[i].keyIndices[j][k], sizeof(UINT), &nBytesWrite, nullptr);
 					for (l = 0; l <animDataArr[i].keyIndices[j][k]; ++l)
 					{
 						FBX_DATA::KeyFrame* currKF = &animDataArr[i].keyframes[j][k][l];
@@ -160,20 +160,20 @@ namespace ursine
 		if (0 == animCount)
 			return;
 
-		// find animation by name
-		int AnimClipIdx = -1;
-		auto AnimClip = FindAnimClip(&AnimClipIdx, clipName);
-		if (-1 == AnimClipIdx || AnimClip.clipname == "")
+		// find animation clip by name
+		int animClipIdx = -1;
+		int numBones = 0;
+		FindAnimClip(&animClipIdx, &numBones, clipName);
+		if (-1 == animClipIdx || 0 == numBones)
 			return;
 
 		// Calculating Final Transform
-		size_t numBones = AnimClip.boneCount;
 		std::vector<XMMATRIX> toParentTransforms(numBones);
 		std::vector<XMMATRIX> toRootTransforms(numBones);
 
 		// currently, we can only handle one animation
 		// Interpolate all the bones of this clip at the given time instance.
-		Interpolate(AnimClipIdx, timePos, toParentTransforms); // need clip index
+		Interpolate(animClipIdx, timePos, toParentTransforms); // need clip index
 															   // Traverse the hierarchy and transform all the bones to the root space.
 															   // The root bone has index 0. The root bone has no parent, so
 															   // its toRootTransform is just its local bone transform.
@@ -203,26 +203,27 @@ namespace ursine
 		}
 	}
 
-	void AnimInfo::Interpolate(int clipindex, double timePos, std::vector<XMMATRIX>& toParentTMs)
+	void AnimInfo::Interpolate(const int& clipindex, double timePos, std::vector<XMMATRIX>& toParentTMs)
 	{
 		// for the number of the meshes in the model
-		for (unsigned int l = 0; l < animCount; ++l)
+		for (auto &iter : animDataArr)
 		{
-			for (size_t i = 0; i < animDataArr[l].boneCount; ++i)
-				animDataArr[l].Interpolate(clipindex, i, timePos, toParentTMs[i]);
+			for (UINT i = 0; i < iter.boneCount; ++i)
+				iter.Interpolate(clipindex, i, timePos, toParentTMs[i]);
 		}
 	}
 
-	const AnimData& AnimInfo::FindAnimClip(int* index, const std::string& clipName) const
+	void AnimInfo::FindAnimClip(int* index, int* boneCount, const std::string& clipName) const
 	{
-		for (unsigned int i = 0; i < animCount; ++i)
+		int i = 0;
+		for (auto& iter : animDataArr)
 		{
-			if (clipName == animDataArr[i].clipname)
+			if (clipName == iter.clipname)
 			{
 				*index = i;
-				return animDataArr[i];
+				*boneCount = iter.boneCount;
+				++i;
 			}
 		}
-		return{};
 	}
 };

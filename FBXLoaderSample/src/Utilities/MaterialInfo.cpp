@@ -62,43 +62,43 @@ namespace ursine
 			char tmp_name[MAXTEXTLEN];
 			ReadFile(hFile, tmp_name, sizeof(char) * MAXTEXTLEN, &nBytesRead, nullptr);
 			name = tmp_name;
-			ReadFile(hFile, &type, sizeof(unsigned int), &nBytesRead, nullptr);
+			ReadFile(hFile, &type, sizeof(UINT), &nBytesRead, nullptr);
 
-			ReadFile(hFile, &ambitype, sizeof(unsigned int), &nBytesRead, nullptr);
-			ReadFile(hFile, &difftype, sizeof(unsigned int), &nBytesRead, nullptr);
-			ReadFile(hFile, &emistype, sizeof(unsigned int), &nBytesRead, nullptr);
-			ReadFile(hFile, &spectype, sizeof(unsigned int), &nBytesRead, nullptr);
+			ReadFile(hFile, &ambitype, sizeof(UINT), &nBytesRead, nullptr);
+			ReadFile(hFile, &difftype, sizeof(UINT), &nBytesRead, nullptr);
+			ReadFile(hFile, &emistype, sizeof(UINT), &nBytesRead, nullptr);
+			ReadFile(hFile, &spectype, sizeof(UINT), &nBytesRead, nullptr);
 
 			ReadFile(hFile, &ambi_mcolor, sizeof(pseudodx::XMFLOAT4), &nBytesRead, nullptr);
 			ReadFile(hFile, &diff_mcolor, sizeof(pseudodx::XMFLOAT4), &nBytesRead, nullptr);
 			ReadFile(hFile, &emis_mcolor, sizeof(pseudodx::XMFLOAT4), &nBytesRead, nullptr);
 			ReadFile(hFile, &spec_mcolor, sizeof(pseudodx::XMFLOAT4), &nBytesRead, nullptr);
 
-			ReadFile(hFile, &ambi_mapCount, sizeof(unsigned int), &nBytesRead, nullptr);
-			ReadFile(hFile, &diff_mapCount, sizeof(unsigned int), &nBytesRead, nullptr);
-			ReadFile(hFile, &emis_mapCount, sizeof(unsigned int), &nBytesRead, nullptr);
-			ReadFile(hFile, &spec_mapCount, sizeof(unsigned int), &nBytesRead, nullptr);
+			ReadFile(hFile, &ambi_mapCount, sizeof(UINT), &nBytesRead, nullptr);
+			ReadFile(hFile, &diff_mapCount, sizeof(UINT), &nBytesRead, nullptr);
+			ReadFile(hFile, &emis_mapCount, sizeof(UINT), &nBytesRead, nullptr);
+			ReadFile(hFile, &spec_mapCount, sizeof(UINT), &nBytesRead, nullptr);
 
 			ambi_texNames.resize(ambi_mapCount);
 			diff_texNames.resize(diff_mapCount);
 			emis_texNames.resize(emis_mapCount);
 			spec_texNames.resize(spec_mapCount);
-			for (unsigned int i = 0; i < ambi_mapCount; ++i)
+			for (UINT i = 0; i < ambi_mapCount; ++i)
 			{
 				ReadFile(hFile, &tmp_name, sizeof(char) * MAXTEXTLEN, &nBytesRead, nullptr);
 				ambi_texNames[i] = tmp_name;
 			}
-			for (unsigned int i = 0; i < diff_mapCount; ++i)
+			for (UINT i = 0; i < diff_mapCount; ++i)
 			{
 				ReadFile(hFile, &tmp_name[i], sizeof(char) * MAXTEXTLEN, &nBytesRead, nullptr);
 				diff_texNames[i] = tmp_name;
 			}
-			for (unsigned int i = 0; i < emis_mapCount; ++i)
+			for (UINT i = 0; i < emis_mapCount; ++i)
 			{
 				ReadFile(hFile, &tmp_name[i], sizeof(char) * MAXTEXTLEN, &nBytesRead, nullptr);
 				emis_texNames[i] = tmp_name;
 			}
-			for (unsigned int i = 0; i < spec_mapCount; ++i)
+			for (UINT i = 0; i < spec_mapCount; ++i)
 			{
 				ReadFile(hFile, &tmp_name[i], sizeof(char) * MAXTEXTLEN, &nBytesRead, nullptr);
 				spec_texNames[i] = tmp_name;
@@ -118,27 +118,27 @@ namespace ursine
 			char tmp_name[MAXTEXTLEN];
 			lstrcpy(tmp_name, name.c_str());
 			WriteFile(hFile, tmp_name, sizeof(char) * MAXTEXTLEN, &nBytesWrite, nullptr);
-			unsigned int int_type = static_cast<unsigned int>(type);
-			WriteFile(hFile, &int_type, sizeof(unsigned int), &nBytesWrite, nullptr);
+			UINT int_type = static_cast<UINT>(type);
+			WriteFile(hFile, &int_type, sizeof(UINT), &nBytesWrite, nullptr);
 
-			int_type = static_cast<unsigned int>(ambitype);
-			WriteFile(hFile, &int_type, sizeof(unsigned int), &nBytesWrite, nullptr);
-			int_type = static_cast<unsigned int>(difftype);
-			WriteFile(hFile, &int_type, sizeof(unsigned int), &nBytesWrite, nullptr);
-			int_type = static_cast<unsigned int>(emistype);
-			WriteFile(hFile, &int_type, sizeof(unsigned int), &nBytesWrite, nullptr);
-			int_type = static_cast<unsigned int>(spectype);
-			WriteFile(hFile, &int_type, sizeof(unsigned int), &nBytesWrite, nullptr);
+			int_type = static_cast<UINT>(ambitype);
+			WriteFile(hFile, &int_type, sizeof(UINT), &nBytesWrite, nullptr);
+			int_type = static_cast<UINT>(difftype);
+			WriteFile(hFile, &int_type, sizeof(UINT), &nBytesWrite, nullptr);
+			int_type = static_cast<UINT>(emistype);
+			WriteFile(hFile, &int_type, sizeof(UINT), &nBytesWrite, nullptr);
+			int_type = static_cast<UINT>(spectype);
+			WriteFile(hFile, &int_type, sizeof(UINT), &nBytesWrite, nullptr);
 
 			WriteFile(hFile, &ambi_mcolor, sizeof(pseudodx::XMFLOAT4), &nBytesWrite, nullptr);
 			WriteFile(hFile, &diff_mcolor, sizeof(pseudodx::XMFLOAT4), &nBytesWrite, nullptr);
 			WriteFile(hFile, &emis_mcolor, sizeof(pseudodx::XMFLOAT4), &nBytesWrite, nullptr);
 			WriteFile(hFile, &spec_mcolor, sizeof(pseudodx::XMFLOAT4), &nBytesWrite, nullptr);
 
-			WriteFile(hFile, &ambi_mapCount, sizeof(unsigned int), &nBytesWrite, nullptr);
-			WriteFile(hFile, &diff_mapCount, sizeof(unsigned int), &nBytesWrite, nullptr);
-			WriteFile(hFile, &emis_mapCount, sizeof(unsigned int), &nBytesWrite, nullptr);
-			WriteFile(hFile, &spec_mapCount, sizeof(unsigned int), &nBytesWrite, nullptr);
+			WriteFile(hFile, &ambi_mapCount, sizeof(UINT), &nBytesWrite, nullptr);
+			WriteFile(hFile, &diff_mapCount, sizeof(UINT), &nBytesWrite, nullptr);
+			WriteFile(hFile, &emis_mapCount, sizeof(UINT), &nBytesWrite, nullptr);
+			WriteFile(hFile, &spec_mapCount, sizeof(UINT), &nBytesWrite, nullptr);
 
 			if (ambi_texNames.size() > 0)
 			{

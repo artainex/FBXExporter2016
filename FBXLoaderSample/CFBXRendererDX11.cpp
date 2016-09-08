@@ -91,7 +91,7 @@ namespace ursine
 			meshNode.indexCount = static_cast<DWORD>(currMI.meshVtxIdxCount);
 			meshNode.SetIndexBit(meshNode.indexCount);
 
-			unsigned int* indices = new unsigned int[meshNode.indexCount];
+			UINT* indices = new UINT[meshNode.indexCount];
 			for (unsigned j = 0; j < meshNode.indexCount; ++j)
 				indices[j] = currMI.meshVtxIndices[j];
 
@@ -140,7 +140,7 @@ namespace ursine
 			return E_FAIL;
 
 		HRESULT hr = S_OK;
-		size_t stride = sizeof(unsigned int);
+		size_t stride = sizeof(UINT);
 
 		D3D11_BUFFER_DESC bd;
 		ZeroMemory(&bd, sizeof(bd));
@@ -232,7 +232,7 @@ namespace ursine
 	}
 
 	HRESULT CFBXRenderDX11::MaterialConstructionByModel(ID3D11Device* pd3dDevice,
-		FBX_DATA::MESH_NODE& meshNode, const ModelInfo& modelInfo, unsigned int index)
+		FBX_DATA::MESH_NODE& meshNode, const ModelInfo& modelInfo, const UINT& index)
 	{
 		const MaterialInfo& currMI = modelInfo.mMtrlInfoVec[index];
 		if (!pd3dDevice || 0 == modelInfo.mmaterialCount)
@@ -298,7 +298,7 @@ namespace ursine
 	HRESULT CFBXRenderDX11::CreateInputLayout(ID3D11Device*	pd3dDevice,
 		const void* pShaderBytecodeWithInputSignature,
 		size_t BytecodeLength,
-		D3D11_INPUT_ELEMENT_DESC* pLayout, unsigned int layoutSize)
+		D3D11_INPUT_ELEMENT_DESC* pLayout, UINT layoutSize)
 	{
 		// InputeLayout
 		if (!pd3dDevice || !pShaderBytecodeWithInputSignature || !pLayout)
@@ -482,7 +482,7 @@ namespace ursine
 			return;
 
 		size_t mtSize = pMesh->m_meshMtxPal.size();
-		for (unsigned int i = 0; i < mtSize; ++i)
+		for (UINT i = 0; i < mtSize; ++i)
 		{
 			XMMATRIX palette_for_hlsl = pMesh->m_meshMtxPal[i];
 			matPal[i] = XMMatrixTranspose(palette_for_hlsl);

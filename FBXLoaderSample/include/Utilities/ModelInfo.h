@@ -26,20 +26,20 @@ namespace ursine
 		std::string name;
 
 		// mesh data	 
-		unsigned int mmeshCount;
+		UINT mmeshCount;
 		std::vector<MeshInfo> mMeshInfoVec;
 
 		// material data
-		unsigned int mmaterialCount;
+		UINT mmaterialCount;
 		std::vector<MaterialInfo> mMtrlInfoVec;
 
 		// skin data
-		unsigned int mboneCount;
+		UINT mboneCount;
 		std::vector<BoneInfo> mBoneInfoVec;
 
 		// level info - hierarchy
-		unsigned int mmeshlvlCount;
-		unsigned int mriglvlCount;
+		UINT mmeshlvlCount;
+		UINT mriglvlCount;
 		std::vector<MeshInLvl> mMeshLvVec;
 		std::vector<RigInLvl> mRigLvVec;
 

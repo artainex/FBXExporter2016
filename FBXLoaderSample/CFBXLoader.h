@@ -210,7 +210,7 @@ namespace ursine
 		*  @param index the reference of the control point
 		*  @return nothing
 		*/
-		void ProcessWeightBlend(FbxNode* pNode, unsigned int& index);
+		void ProcessWeightBlend(FbxNode* pNode, UINT& index);
 
 		/** @brief fbx loader remove unncessary weight funciton
 		*
@@ -368,7 +368,7 @@ namespace ursine
 
 		void TransformWithInverseMeshTM(std::vector<pseudodx::XMFLOAT3> &Float3Vec, const FbxAMatrix &mat);
 
-		void CFBXLoader::Reconstruct(unsigned int meshIdx, std::vector<ursine::MeshVertex>& mvVec, std::vector<unsigned int>& miVec, const FBX_DATA::MeshData& md);
+		void CFBXLoader::Reconstruct(UINT meshIdx, std::vector<ursine::MeshVertex>& mvVec, std::vector<UINT>& miVec, const FBX_DATA::MeshData& md);
 
 		/** @brief fbx loader get mesh data function
 		*
@@ -420,7 +420,7 @@ namespace ursine
 		const AnimInfo& GetAnimInfo() const { return m_AnimInfo; }
 
 	private:
-		unsigned int            boneindex;
+		UINT            boneindex;
 		std::pair<bool, bool>   m_AnimationFlag;	// first flag = if there is animation
 													// second flag = if there is only animation
 		FbxPose*                m_AnimPose;

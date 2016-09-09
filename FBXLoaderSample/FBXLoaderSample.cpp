@@ -10,8 +10,8 @@
 
 
 #include <WholeInformation.h>
-#include "CFBXRendererDX11.h"
 #include <ctime>
+#include "CFBXRendererDX11.h"
 
 using namespace DirectX;
 using namespace ursine::FBX_DATA;
@@ -39,12 +39,18 @@ XMMATRIX                            g_Projection;
 // MACROS
 //--------------------------------------------------------------------------------------
 #define FAIL_CHECK(expression) if( FAILED(expression) )	{ return expression; }
-
+#define FAIL_CHECK_BOOLEAN(expression) if( FAILED(expression) )	{ return false; }
 #define FAIL_CHECK_WITH_MSG(expression, msg) if( FAILED(expression) )	\
 {																		\
 	MessageBox(NULL, msg, "Error", MB_OK);								\
 	return expression;													\
 }
+
+#define SAFE_RELEASE(pt) if( nullptr != pt )\
+{ pt->Release(); pt = nullptr; }			\
+
+#define SAFE_DELETE(pt) if( nullptr != pt )	\
+{ delete pt; pt = nullptr; }				\
 
 //--------------------------------------------------------------------------------------
 // Forward declarations
@@ -55,6 +61,7 @@ void CleanupDevice();
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 void Update(double deltaTime);
 void Render();
+bool SetShaderParameters(const UINT& model_index, const UINT& mesh_index, const eLayout& layoutType);
 UINT updateSpeed = 1;
 
 const UINT	NUMBER_OF_MODELS = 1;
@@ -71,7 +78,7 @@ char g_files[NUMBER_OF_MODELS][256] =
 
 std::vector<XMMATRIX> skin_mat;
 
-struct CBFBXMATRIX
+struct MatrixBufferType
 {
 	XMMATRIX mWorld;
 	XMMATRIX mView;
@@ -80,9 +87,17 @@ struct CBFBXMATRIX
 	XMMATRIX matPal[96];
 };
 
+struct LightBufferType
+{
+	XMVECTOR diffuseColor;
+	XMVECTOR lightDirection;
+	float padding;  // Added extra padding so structure is a multiple of 16 for CreateBuffer function requirements.
+};
+
 ID3D11BlendState*				g_pBlendState = nullptr;
 ID3D11RasterizerState*			g_pRS = nullptr;
-ID3D11Buffer*					g_pcBuffer = nullptr;
+ID3D11Buffer*					g_pmtxBuffer = nullptr;
+ID3D11Buffer*					g_plightBuffer = nullptr;
 ID3D11VertexShader*				g_pvsStatic = nullptr;
 ID3D11VertexShader*             g_pvsSkinned = nullptr;
 ID3D11PixelShader*              g_pps = nullptr;
@@ -104,6 +119,14 @@ HRESULT SetupTransformSRV();
 //--------------------------------------------------------------------------------------
 // Entry point to the program. Initializes everything and goes into a message processing 
 // loop. Idle time is used to render the scene.
+//--------------------------------------------------------------------------------------
+
+//--------------------------------------------------------------------------------------
+// task list
+// 1. Deferred Rendering Pipeline
+// 2. 노멀 맵핑이랑 퐁 라이팅 적용해두기
+// 3. G-buffer란 무엇인가? 셰도우 맵핑 적용할 준비를 할 것.
+// 4. 여러 오브젝트를 로딩할 수 있는가? 인스턴싱이 아니라.
 //--------------------------------------------------------------------------------------
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, int nCmdShow)
 {
@@ -480,14 +503,23 @@ HRESULT InitApp()
 	if (FAILED(hr))
 		return hr;
 
-	// Create Constant Buffer
-	D3D11_BUFFER_DESC bd;
-	ZeroMemory(&bd, sizeof(bd));
-	bd.Usage = D3D11_USAGE_DYNAMIC;
-	bd.ByteWidth = sizeof(CBFBXMATRIX);
-	bd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-	bd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-	hr = g_pd3dDevice->CreateBuffer(&bd, NULL, &g_pcBuffer);
+	// Create Constant Buffer - For Matrices
+	D3D11_BUFFER_DESC mtxBufferDesc;
+	ZeroMemory(&mtxBufferDesc, sizeof(mtxBufferDesc));
+	mtxBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
+	mtxBufferDesc.ByteWidth = sizeof(MatrixBufferType);
+	mtxBufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	mtxBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+	hr = g_pd3dDevice->CreateBuffer(&mtxBufferDesc, NULL, &g_pmtxBuffer);
+	FAIL_CHECK(hr);
+
+	D3D11_BUFFER_DESC lightBufferDesc;
+	ZeroMemory(&lightBufferDesc, sizeof(lightBufferDesc));
+	lightBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
+	lightBufferDesc.ByteWidth = sizeof(MatrixBufferType);
+	lightBufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	lightBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+	hr = g_pd3dDevice->CreateBuffer(&lightBufferDesc, NULL, &g_plightBuffer);
 	FAIL_CHECK(hr);
 
 	//
@@ -554,67 +586,20 @@ HRESULT SetupTransformSRV()
 // Clear application
 void CleanupApp()
 {
-	if (g_pTransformSRV)
-	{
-		g_pTransformSRV->Release();
-		g_pTransformSRV = nullptr;
-	}
+	SAFE_RELEASE(g_pTransformSRV);
+	SAFE_RELEASE(g_pTransformStructuredBuffer);
+	SAFE_RELEASE(g_pBlendState);
 
-	if (g_pTransformStructuredBuffer)
-	{
-		g_pTransformStructuredBuffer->Release();
-		g_pTransformStructuredBuffer = nullptr;
-	}
+	for (UINT i = 0; i < NUMBER_OF_MODELS; ++i)
+		SAFE_DELETE(g_pFbxDX11[i]);
 
-	if (g_pBlendState)
-	{
-		g_pBlendState->Release();
-		g_pBlendState = nullptr;
-	}
-
-	for (DWORD i = 0; i<NUMBER_OF_MODELS; i++)
-	{
-		if (g_pFbxDX11[i])
-		{
-			delete g_pFbxDX11[i];
-			g_pFbxDX11[i] = nullptr;
-		}
-	}
-
-	if (g_pRS)
-	{
-		g_pRS->Release();
-		g_pRS = nullptr;
-	}
-
-	if (g_pvsInstancing)
-	{
-		g_pvsInstancing->Release();
-		g_pvsInstancing = nullptr;
-	}
-
-	if (g_pvsSkinned)
-	{
-		g_pvsSkinned->Release();
-		g_pvsSkinned = nullptr;
-	}
-
-	if (g_pvsStatic)
-	{
-		g_pvsStatic->Release();
-		g_pvsStatic = nullptr;
-	}
-
-	if (g_pps)
-	{
-		g_pps->Release();
-		g_pps = nullptr;
-	}
-	if (g_pcBuffer)
-	{
-		g_pcBuffer->Release();
-		g_pcBuffer = nullptr;
-	}
+	SAFE_RELEASE(g_pRS);
+	SAFE_RELEASE(g_pvsInstancing);
+	SAFE_RELEASE(g_pvsSkinned);
+	SAFE_RELEASE(g_pvsStatic);
+	SAFE_RELEASE(g_pps);
+	SAFE_RELEASE(g_pmtxBuffer);
+	SAFE_RELEASE(g_plightBuffer);
 }
 
 //--------------------------------------------------------------------------------------
@@ -623,13 +608,13 @@ void CleanupApp()
 void CleanupDevice()
 {
 	if (g_pImmediateContext) g_pImmediateContext->ClearState();
-	if (g_pDepthStencilState) g_pDepthStencilState->Release();
-	if (g_pDepthStencil) g_pDepthStencil->Release();
-	if (g_pDepthStencilView) g_pDepthStencilView->Release();
-	if (g_pRenderTargetView) g_pRenderTargetView->Release();
-	if (g_pSwapChain) g_pSwapChain->Release();
-	if (g_pImmediateContext) g_pImmediateContext->Release();
-	if (g_pd3dDevice) g_pd3dDevice->Release();
+	SAFE_RELEASE(g_pDepthStencilState);
+	SAFE_RELEASE(g_pDepthStencil);
+	SAFE_RELEASE(g_pDepthStencilView);
+	SAFE_RELEASE(g_pRenderTargetView);
+	SAFE_RELEASE(g_pSwapChain);
+	SAFE_RELEASE(g_pImmediateContext);
+	SAFE_RELEASE(g_pd3dDevice);
 }
 
 //--------------------------------------------------------------------------------------
@@ -709,16 +694,16 @@ void Render()
 	g_pImmediateContext->OMSetDepthStencilState(g_pDepthStencilState, 0);
 
 	// for all model
-	for (size_t i = 0; i<NUMBER_OF_MODELS; ++i)
+	for (UINT mdl_idx = 0; mdl_idx < NUMBER_OF_MODELS; ++mdl_idx)
 	{
 		// for all nodes
-		size_t meshnodeCnt = g_pFbxDX11[i]->GetMeshNodeCount();
-		for (size_t j = 0; j < meshnodeCnt; ++j)
+		size_t meshnodeCnt = g_pFbxDX11[mdl_idx]->GetMeshNodeCount();
+		for (UINT mn_idx = 0; mn_idx < meshnodeCnt; ++mn_idx)
 		{
 			//////////////////////////////////////
 			// sort by layout later
 			//////////////////////////////////////
-			eLayout layout_type = g_pFbxDX11[i]->GetLayoutType(j);
+			eLayout layout_type = g_pFbxDX11[mdl_idx]->GetLayoutType(mn_idx);
 			ID3D11VertexShader* pVS = nullptr;
 			switch (layout_type)
 			{
@@ -728,48 +713,14 @@ void Render()
 			}
 
 			g_pImmediateContext->VSSetShader(pVS, NULL, 0);
-			g_pImmediateContext->VSSetConstantBuffers(0, 1, &g_pcBuffer);
+			g_pImmediateContext->VSSetConstantBuffers(0, 1, &g_pmtxBuffer);
 			g_pImmediateContext->PSSetShader(g_pps, NULL, 0);
 
-			D3D11_MAPPED_SUBRESOURCE MappedResource;
-			g_pImmediateContext->Map(g_pcBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &MappedResource);
-
-			CBFBXMATRIX* cbFBX = (CBFBXMATRIX*)MappedResource.pData;
-
-			// WVP
-			cbFBX->mWorld = XMMatrixTranspose(g_World);
-			cbFBX->mView = XMMatrixTranspose(g_View);
-			cbFBX->mProj = XMMatrixTranspose(g_Projection);
-
-			// xm matrix - row major
-			// hlsl - column major
-			// that's why we should transpose this
-			cbFBX->mWVP = XMMatrixTranspose(g_World * g_View * g_Projection);
-			if (eLayout::SKINNED == layout_type)
-				g_pFbxDX11[i]->UpdateMatPal(&cbFBX->matPal[0]);
-
-			// should be changed to get specific materials according to specific material id 
-			// to make this possible, we need to build up the structure of subsets
-			Material_Data material = g_pFbxDX11[i]->GetNodeFbxMaterial(j);
-
-			if (g_pTransformSRV)	g_pImmediateContext->VSSetShaderResources(0, 1, &g_pTransformSRV);
-			if (material.pSRV)		g_pImmediateContext->PSSetShaderResources(0, 1, &material.pSRV);
-
-			// set constant buffer for material
-			if (material.pMaterialCb)
-			{
-				g_pImmediateContext->UpdateSubresource(material.pMaterialCb, 0, NULL, &material.materialConst, 0, 0);
-				g_pImmediateContext->PSSetConstantBuffers(0, 1, &material.pMaterialCb);
-			}
-
-			// set sampler
-			if (material.pSampler)	g_pImmediateContext->PSSetSamplers(0, 1, &material.pSampler);
+			// set shader parameters(mapping constant buffers, matrices, resources)
+			SetShaderParameters(mdl_idx, mn_idx, layout_type);
 
 			// render node
-			g_pFbxDX11[i]->RenderNode(g_pImmediateContext, j);
-
-			// unmap constant buffer
-			g_pImmediateContext->Unmap(g_pcBuffer, 0);
+			g_pFbxDX11[mdl_idx]->RenderNode(g_pImmediateContext, mn_idx);
 
 			// reset shader
 			g_pImmediateContext->VSSetShader(NULL, NULL, 0);
@@ -779,4 +730,51 @@ void Render()
 
 	// Present our back buffer to our front buffer
 	g_pSwapChain->Present(0, 0);
+}
+
+//--------------------------------------------------------------------------------------
+// Set Shader Parameters
+//--------------------------------------------------------------------------------------
+bool SetShaderParameters(const UINT& model_index, const UINT& mesh_index, const eLayout& layoutType)
+{
+	D3D11_MAPPED_SUBRESOURCE MappedResource;
+	HRESULT hr;
+	hr = g_pImmediateContext->Map(g_pmtxBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &MappedResource);
+	FAIL_CHECK_BOOLEAN(hr);
+
+	MatrixBufferType* mtxBuffer = (MatrixBufferType*)MappedResource.pData;
+
+	// WVP
+	mtxBuffer->mWorld = XMMatrixTranspose(g_World);
+	mtxBuffer->mView = XMMatrixTranspose(g_View);
+	mtxBuffer->mProj = XMMatrixTranspose(g_Projection);
+
+	// xm matrix - row major
+	// hlsl - column major
+	// that's why we should transpose this
+	mtxBuffer->mWVP = XMMatrixTranspose(g_World * g_View * g_Projection);
+	if (eLayout::SKINNED == layoutType)
+		g_pFbxDX11[model_index]->UpdateMatPal(&mtxBuffer->matPal[0]);
+
+	// should be changed to get specific materials according to specific material id 
+	// to make this possible, we need to build up the structure of subsets
+	Material_Data material = g_pFbxDX11[model_index]->GetNodeFbxMaterial(mesh_index);
+
+	if (g_pTransformSRV)	g_pImmediateContext->VSSetShaderResources(0, 1, &g_pTransformSRV);
+	if (material.pSRV)		g_pImmediateContext->PSSetShaderResources(0, 1, &material.pSRV);
+
+	// set constant buffer for material
+	if (material.pMaterialCb)
+	{
+		g_pImmediateContext->UpdateSubresource(material.pMaterialCb, 0, NULL, &material.materialConst, 0, 0);
+		g_pImmediateContext->PSSetConstantBuffers(0, 1, &material.pMaterialCb);
+	}
+
+	// set sampler
+	if (material.pSampler)	g_pImmediateContext->PSSetSamplers(0, 1, &material.pSampler);
+
+	// unmap constant buffer
+	g_pImmediateContext->Unmap(g_pmtxBuffer, 0);
+
+	return true;
 }
